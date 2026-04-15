@@ -128,7 +128,7 @@ export function analyzePlatforms(
       platform:  "숨고",
       emoji:     "🔮",
       keyword:   soomgoKw,
-      url:       toUrl("https://soomgo.com/search?query=", soomgoKw),
+      url:       toUrl("https://soomgo.com/search/total?query=", soomgoKw),
       reason:    "리뷰 검증 전문가 풀 — 취미·입문 레슨 수요 최다",
       accent:    "bg-purple-600",
       light:     "bg-purple-50",

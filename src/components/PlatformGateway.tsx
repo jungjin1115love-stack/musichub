@@ -51,7 +51,7 @@ const PLATFORMS = [
     // 숨고는 악기명만 인식 — 지역 제외
     getUrl: (instrument: string, _region: string) => {
       const query = encodeURIComponent(instrument || "음악 강사");
-      return `https://soomgo.com/search?query=${query}`;
+      return `https://soomgo.com/search/total?query=${query}`;
     },
   },
   {
