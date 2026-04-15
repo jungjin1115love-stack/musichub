@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import PlatformGateway from "@/components/PlatformGateway";
 import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
 import {
   Sparkles,
@@ -129,8 +130,13 @@ const Index = () => {
           </div>
         </section>
 
-        {/* ── How It Works ── */}
+        {/* ── Platform Gateway ── */}
         <section className="max-w-2xl mx-auto px-4 -mt-4 mb-6">
+          <PlatformGateway />
+        </section>
+
+        {/* ── How It Works ── */}
+        <section className="max-w-2xl mx-auto px-4 mb-6">
           <div className="bg-white rounded-3xl shadow-md p-6">
             <h2 className="text-center font-extrabold text-gray-800 text-lg mb-5">이렇게 만들어요 👇</h2>
             <div className="flex items-start gap-2">

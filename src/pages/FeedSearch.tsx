@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import PlatformGateway from "@/components/PlatformGateway";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -222,6 +223,9 @@ const FeedSearch = () => {
       <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+
+        {/* ── 통합 검색 게이트웨이 ── */}
+        <PlatformGateway />
 
         {/* ── 타이틀 ── */}
         <div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import PlatformGateway from "@/components/PlatformGateway";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -110,6 +111,11 @@ const AcademySearch = () => {
       </div>
 
       <main className="max-w-2xl mx-auto px-4 py-5">
+        {/* Platform Gateway */}
+        <div className="mb-5">
+          <PlatformGateway />
+        </div>
+
         {/* Title */}
         <div className="mb-4">
           <h1 className="text-2xl font-extrabold text-gray-800">🏫 내 주변 학원</h1>
