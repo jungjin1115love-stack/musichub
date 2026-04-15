@@ -1,90 +1,74 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
 import {
-  Briefcase,
-  Music,
-  School,
-  MessageCircle,
+  Sparkles,
+  Video,
+  Share2,
   MapPin,
   Clock,
-  Star,
+  ExternalLink,
   ChevronRight,
-  Search,
+  Star,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 
-// ── Dummy Data ──────────────────────────────────────────────
+// ── Sample Profile ────────────────────────────────────────────
 
-const JOBS = [
-  { id: 1, title: "보컬 강사 모집", academy: "소리나무 실용음악학원", region: "서울", salary: "시급 4만", urgent: true, time: "3분 전" },
-  { id: 2, title: "재즈피아노 파트타임 강사", academy: "블루노트 아카데미", region: "서울", salary: "월 250만", urgent: false, time: "1시간 전" },
-  { id: 3, title: "드럼 강사 급구", academy: "비트팩토리", region: "경기", salary: "시급 3.5만", urgent: true, time: "15분 전" },
-  { id: 4, title: "기타 전임 강사", academy: "스트링아트 학원", region: "인천", salary: "월 300만", urgent: false, time: "3시간 전" },
-  { id: 5, title: "작곡/미디 강사", academy: "사운드랩 아카데미", region: "부산", salary: "협의", urgent: false, time: "30분 전" },
-];
-
-const LESSONS = [
-  { id: 1, instructor: "김민수", category: "건반", region: "서울", title: "재즈피아노 1:1 레슨", price: "회당 8만", verified: true, time: "20분 전" },
-  { id: 2, instructor: "이수진", category: "보컬", region: "서울", title: "입시/취미 보컬 레슨", price: "회당 6만", verified: true, time: "5분 전" },
-  { id: 3, instructor: "박준영", category: "기타", region: "경기", title: "어쿠스틱/일렉 기타 레슨", price: "회당 5만", verified: false, time: "10분 전" },
-  { id: 4, instructor: "정하은", category: "작곡", region: "서울", title: "미디작곡 & 프로듀싱", price: "회당 7만", verified: true, time: "1시간 전" },
-  { id: 5, instructor: "최동욱", category: "드럼", region: "부산", title: "드럼 초급~고급 레슨", price: "회당 5만", verified: false, time: "45분 전" },
-];
-
-const ACADEMIES = [
-  { id: 1, name: "소리나무 실용음악학원", region: "서울", category: "보컬", event: "신규 개원 기념 첫 달 50% 할인 🎉", isNew: true, time: "1시간 전" },
-  { id: 2, name: "블루노트 아카데미", region: "서울", category: "건반", event: "여름 특강 수강생 모집 중", isNew: false, time: "3시간 전" },
-  { id: 3, name: "비트팩토리", region: "경기", category: "드럼", event: "무료 체험 레슨 이벤트 진행 중", isNew: true, time: "30분 전" },
-  { id: 4, name: "뮤직플러스", region: "대구", category: "보컬", event: "입시반 조기등록 할인", isNew: false, time: "5시간 전" },
-  { id: 5, name: "스트링아트 학원", region: "인천", category: "기타", event: "기타 입문 무료 체험 신청 접수 중", isNew: true, time: "2시간 전" },
-];
-
-const COMMUNITY = [
-  { id: 1, title: "야마하 C3 그랜드피아노 판매", region: "서울", price: "800만원", type: "악기거래", time: "2시간 전" },
-  { id: 2, title: "강남역 연습실 시간대여", region: "서울", price: "시간당 1만원", type: "연습실", time: "15분 전" },
-  { id: 3, title: "펜더 스트라토캐스터 중고", region: "경기", price: "120만원", type: "악기거래", time: "40분 전" },
-  { id: 4, title: "롤랜드 전자드럼 TD-17", region: "인천", price: "85만원", type: "악기거래", time: "1시간 전" },
-  { id: 5, title: "홈레코딩 장비 세트 일괄", region: "서울", price: "45만원", type: "장비", time: "3시간 전" },
-];
-
-const CATEGORIES = ["전체", "보컬", "기타", "건반", "드럼", "작곡"];
-const REGIONS = ["전체", "서울", "경기", "인천", "부산", "대구"];
-
-// ── Sub-Components ───────────────────────────────────────────
-
-type SectionHeaderProps = {
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
+const SAMPLE_PROFILE: InstructorProfile = {
+  name: "김민수",
+  major: "피아노 · 재즈",
+  school: "연세대 음악학과",
+  experience: "10년 경력",
+  tagline: "입시부터 취미까지, 당신의 속도에 맞추는 레슨",
+  verifiedSchool: true,
+  verifiedCareer: true,
+  youtubeId: "jNQXAC9IVRw",
+  curriculum: [
+    "재즈 기초 이론 및 코드 보이싱",
+    "즉흥연주(임프로바이제이션) 트레이닝",
+    "팝·클래식 레퍼토리 완성",
+    "음악대학 입시 전문 지도",
+  ],
+  kakaoLink: "https://open.kakao.com/",
+  profileId: "kimminsu",
+  emoji: "🎹",
 };
 
-function SectionHeader({ icon, title, sub }: SectionHeaderProps) {
+// ── Aggregator Data ───────────────────────────────────────────
+
+const TODAY_JOBS = [
+  { id: 1, title: "보컬 강사 급구 (풀타임)", source: "뮬", region: "서울 홍대", salary: "월 300만", isNew: true, time: "37분 전", urgent: true },
+  { id: 2, title: "재즈피아노 파트타임 강사 모집", source: "뮬", region: "서울 강남", salary: "시급 4만", isNew: true, time: "1시간 전", urgent: false },
+  { id: 3, title: "드럼 전임 강사 (경력 2년 이상)", source: "카페", region: "경기 성남", salary: "월 280만", isNew: false, time: "2시간 전", urgent: true },
+  { id: 4, title: "미디/작곡 강사 모집 (협의)", source: "뮬", region: "서울 마포", salary: "협의", isNew: false, time: "3시간 전", urgent: false },
+  { id: 5, title: "기타 강사 파트타임 구합니다", source: "카페", region: "인천 부평", salary: "시급 3.5만", isNew: true, time: "4시간 전", urgent: false },
+];
+
+// ── Sub-Components ────────────────────────────────────────────
+
+function StepBadge({ n, label, icon }: { n: number; label: string; icon: string }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-orange-100 text-[#ff8a3d]">
-          {icon}
-        </span>
-        <div>
-          <p className="font-extrabold text-lg text-gray-800 leading-tight">{title}</p>
-          <p className="text-xs text-gray-400">{sub}</p>
-        </div>
+    <div className="flex flex-col items-center gap-2 flex-1">
+      <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl">
+        {icon}
       </div>
-      <button className="flex items-center gap-1 text-sm text-[#ff8a3d] font-semibold">
-        더보기 <ChevronRight size={15} />
-      </button>
+      <span className="w-6 h-6 rounded-full bg-[#ff8a3d] text-white text-xs font-extrabold flex items-center justify-center -mt-1">
+        {n}
+      </span>
+      <p className="text-sm font-semibold text-gray-700 text-center leading-tight">{label}</p>
     </div>
   );
 }
 
-// ── Main Page ────────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────────
 
 const Index = () => {
-  // 'show' → 'fadeout' → 'done'
   const [splashPhase, setSplashPhase] = useState<"show" | "fadeout" | "done">("show");
-  const [category, setCategory] = useState("전체");
-  const [region, setRegion] = useState("전체");
+  const [showSample, setShowSample] = useState(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setSplashPhase("fadeout"), 1500);
@@ -95,7 +79,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-[#fff9f5]">
 
-      {/* ── Splash Screen ── */}
+      {/* ── Splash ── */}
       {splashPhase !== "done" && (
         <div
           className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#ff8a3d] transition-opacity duration-700 ${
@@ -105,17 +89,14 @@ const Index = () => {
           <div className="text-center">
             <div className="text-7xl mb-4">🎵</div>
             <h1 className="text-5xl font-extrabold text-white tracking-tight">MusicHub</h1>
-            <p className="text-white/80 text-xl mt-3 font-medium">실용음악 통합 플랫폼</p>
+            <p className="text-white/80 text-xl mt-3 font-medium">강사의 무기를 만드는 곳</p>
           </div>
         </div>
       )}
 
-      {/* ── Main Content ── */}
-      <div
-        className={`transition-opacity duration-700 ${
-          splashPhase === "done" ? "opacity-100" : "opacity-0"
-        }`}
-      >
+      {/* ── Main ── */}
+      <div className={`transition-opacity duration-700 ${splashPhase === "done" ? "opacity-100" : "opacity-0"}`}>
+
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white shadow-sm">
           <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -129,57 +110,129 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Search / Filter Area */}
-        <section className="bg-[#ff8a3d] pt-6 pb-10 px-4">
-          <div className="max-w-2xl mx-auto">
-            <p className="text-white text-2xl font-extrabold text-center mb-5">
-              🔍 어떤 음악 정보를 찾으세요?
+        {/* ── Hero ── */}
+        <section className="bg-gradient-to-b from-[#ff8a3d] to-[#ffb347] px-4 pt-10 pb-14">
+          <div className="max-w-2xl mx-auto text-center">
+            <Badge className="bg-white/20 text-white border-white/30 text-sm px-3 py-1 mb-4 rounded-full">
+              <Sparkles size={13} className="mr-1" /> 강사 전용 무료 서비스
+            </Badge>
+            <h1 className="text-3xl font-extrabold text-white leading-tight mb-3">
+              내 연주 영상 하나로<br />
+              <span className="text-yellow-200">1분 만에 끝내는</span><br />
+              레슨 프로필 생성
+            </h1>
+            <p className="text-white/80 text-base mb-6 leading-relaxed">
+              뮬, 인스타, 카카오에 바로 공유할 수 있는<br />
+              나만의 강사 프로필 카드를 지금 무료로 만들어보세요.
             </p>
-            <div className="bg-white rounded-2xl p-4 shadow-lg flex gap-3 items-center">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="flex-1 rounded-xl border-2 border-orange-200 px-3 py-2.5 text-base font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <select
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                className="flex-1 rounded-xl border-2 border-orange-200 px-3 py-2.5 text-base font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
-              >
-                {REGIONS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              <button className="bg-[#ff8a3d] hover:bg-[#e07030] text-white rounded-xl px-4 py-2.5 font-bold text-base flex items-center gap-1 transition-colors">
-                <Search size={16} /> 검색
-              </button>
+            <Button
+              className="bg-white text-[#ff8a3d] hover:bg-yellow-50 font-extrabold rounded-2xl px-8 h-14 text-lg shadow-lg gap-2 mb-4"
+              onClick={() => setShowSample(true)}
+            >
+              무료로 만들기 <ArrowRight size={20} />
+            </Button>
+            <div className="flex items-center justify-center gap-4 text-white/70 text-sm">
+              <span className="flex items-center gap-1"><Users size={14} /> 강사 2,400명 사용 중</span>
+              <span className="flex items-center gap-1"><Star size={14} /> 평점 4.9</span>
             </div>
           </div>
         </section>
 
-        {/* QUAD Dashboard */}
-        <main className="max-w-2xl mx-auto px-4 -mt-4 pb-12 space-y-6">
+        {/* ── How It Works ── */}
+        <section className="max-w-2xl mx-auto px-4 -mt-4 mb-6">
+          <div className="bg-white rounded-3xl shadow-md p-6">
+            <h2 className="text-center font-extrabold text-gray-800 text-lg mb-5">이렇게 만들어요 👇</h2>
+            <div className="flex items-start gap-2">
+              <StepBadge n={1} icon="🎬" label={"유튜브 링크\n붙여넣기"} />
+              <div className="flex-shrink-0 mt-7 text-gray-300">
+                <ChevronRight size={20} />
+              </div>
+              <StepBadge n={2} icon="✍️" label={"커리큘럼 & \n연락처 입력"} />
+              <div className="flex-shrink-0 mt-7 text-gray-300">
+                <ChevronRight size={20} />
+              </div>
+              <StepBadge n={3} icon="🚀" label={"뮬/인스타에\n바로 공유"} />
+            </div>
+          </div>
+        </section>
 
-          {/* ① 구인/구직 */}
+        {/* ── Profile Card Sample ── */}
+        <section className="max-w-2xl mx-auto px-4 mb-6">
           <div className="bg-white rounded-3xl shadow-md p-5">
-            <SectionHeader icon={<Briefcase size={20} />} title="구인/구직" sub="학원 채용 정보" />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-extrabold text-gray-800 text-lg">📱 샘플 프로필 카드</h2>
+              <Badge className="bg-orange-100 text-[#ff8a3d] border-0 text-xs">미리보기</Badge>
+            </div>
+            <p className="text-gray-500 text-sm mb-5">
+              이런 카드가 만들어집니다. 뮬, 인스타 링크 하나로 공유하세요.
+            </p>
+            <div className="flex justify-center">
+              <ProfileCard profile={SAMPLE_PROFILE} />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Trust Badges Info ── */}
+        <section className="max-w-2xl mx-auto px-4 mb-6">
+          <div className="bg-white rounded-3xl shadow-md p-5">
+            <h2 className="font-extrabold text-gray-800 text-lg mb-4">🏅 신뢰 마크 시스템</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 rounded-2xl p-4 flex flex-col gap-2">
+                <div className="text-2xl">🎓</div>
+                <p className="font-bold text-gray-800 text-sm">학력 인증</p>
+                <p className="text-xs text-gray-500 leading-relaxed">졸업증명서 제출 시 프로필에 인증 배지 표시</p>
+              </div>
+              <div className="bg-green-50 rounded-2xl p-4 flex flex-col gap-2">
+                <div className="text-2xl">💼</div>
+                <p className="font-bold text-gray-800 text-sm">경력 확인</p>
+                <p className="text-xs text-gray-500 leading-relaxed">재직증명서·추천서 제출 시 경력 확인 배지 표시</p>
+              </div>
+              <div className="bg-yellow-50 rounded-2xl p-4 flex flex-col gap-2">
+                <div className="text-2xl">▶️</div>
+                <p className="font-bold text-gray-800 text-sm">연주 영상</p>
+                <p className="text-xs text-gray-500 leading-relaxed">유튜브 링크 연결 시 카드에서 바로 재생 가능</p>
+              </div>
+              <div className="bg-pink-50 rounded-2xl p-4 flex flex-col gap-2">
+                <div className="text-2xl">💬</div>
+                <p className="font-bold text-gray-800 text-sm">카톡 연결</p>
+                <p className="text-xs text-gray-500 leading-relaxed">오픈채팅 링크 등록으로 즉시 문의 가능</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Today's Job Aggregator ── */}
+        <section className="max-w-2xl mx-auto px-4 mb-10">
+          <div className="bg-white rounded-3xl shadow-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-extrabold text-gray-800 text-lg">
+                📋 오늘의 신규 구인 소식
+              </h2>
+              <button className="flex items-center gap-1 text-sm text-[#ff8a3d] font-semibold">
+                더보기 <ChevronRight size={15} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">
+              <ExternalLink size={11} /> 뮬, 음악 카페 등 외부 채용 공고 모음
+            </p>
             <div className="space-y-3">
-              {JOBS.map((job) => (
+              {TODAY_JOBS.map((job) => (
                 <Card key={job.id} className="rounded-2xl border border-orange-100 shadow-none bg-orange-50">
                   <CardContent className="p-4 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
                         {job.urgent && (
                           <Badge className="bg-red-500 text-white text-xs px-2 py-0 rounded-full">급구</Badge>
                         )}
-                        <span className="font-bold text-base text-gray-800 truncate">{job.title}</span>
+                        {job.isNew && (
+                          <Badge className="bg-[#ff8a3d] text-white text-xs px-2 py-0 rounded-full">NEW</Badge>
+                        )}
+                        <Badge variant="outline" className="text-xs px-2 py-0 rounded-full border-orange-200 text-orange-400">
+                          {job.source}
+                        </Badge>
                       </div>
-                      <p className="text-sm text-gray-500 mb-1">{job.academy}</p>
-                      <div className="flex items-center gap-3">
+                      <p className="font-bold text-sm text-gray-800 truncate">{job.title}</p>
+                      <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-gray-400 flex items-center gap-1">
                           <MapPin size={11} /> {job.region}
                         </span>
@@ -194,104 +247,17 @@ const Index = () => {
               ))}
             </div>
           </div>
+        </section>
 
-          {/* ② 레슨/매칭 */}
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <SectionHeader icon={<Music size={20} />} title="레슨/매칭" sub="강사 찾기" />
-            <div className="space-y-3">
-              {LESSONS.map((lesson) => (
-                <Card key={lesson.id} className="rounded-2xl border border-orange-100 shadow-none bg-yellow-50">
-                  <CardContent className="p-4 flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        {lesson.verified && (
-                          <Badge className="bg-green-500 text-white text-xs px-2 py-0 rounded-full">인증</Badge>
-                        )}
-                        <span className="font-bold text-base text-gray-800 truncate">{lesson.title}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mb-1">
-                        {lesson.instructor} 강사 · {lesson.category}
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <MapPin size={11} /> {lesson.region}
-                        </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} /> {lesson.time}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[#ff8a3d] font-bold text-sm whitespace-nowrap">{lesson.price}</span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+        {/* ── Bottom CTA ── */}
+        <section className="bg-[#ff8a3d] py-10 px-4 text-center">
+          <p className="text-white text-xl font-extrabold mb-2">지금 바로 시작해보세요 🎵</p>
+          <p className="text-white/75 text-sm mb-5">가입 없이 1분 만에 프로필 카드 완성</p>
+          <Button className="bg-white text-[#ff8a3d] hover:bg-yellow-50 font-extrabold rounded-2xl px-8 h-12 text-base shadow-md gap-2">
+            무료로 프로필 만들기 <ArrowRight size={18} />
+          </Button>
+        </section>
 
-          {/* ③ 학원 소식 */}
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <SectionHeader icon={<School size={20} />} title="학원 소식" sub="우리 동네 학원" />
-            <div className="space-y-3">
-              {ACADEMIES.map((academy) => (
-                <Card key={academy.id} className="rounded-2xl border border-orange-100 shadow-none bg-green-50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className="font-bold text-base text-gray-800">{academy.name}</span>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {academy.isNew && (
-                          <Badge className="bg-[#ff8a3d] text-white text-xs px-2 py-0 rounded-full">NEW</Badge>
-                        )}
-                        <Badge variant="outline" className="text-xs px-2 py-0 rounded-full border-orange-200 text-orange-500">
-                          {academy.category}
-                        </Badge>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-1">{academy.event}</p>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <MapPin size={11} /> {academy.region}
-                      </span>
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Clock size={11} /> {academy.time}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* ④ 커뮤니티 */}
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <SectionHeader icon={<MessageCircle size={20} />} title="커뮤니티" sub="악기 · 정보" />
-            <div className="space-y-3">
-              {COMMUNITY.map((item) => (
-                <Card key={item.id} className="rounded-2xl border border-orange-100 shadow-none bg-blue-50">
-                  <CardContent className="p-4 flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs px-2 py-0 rounded-full border-orange-200 text-orange-500">
-                          {item.type}
-                        </Badge>
-                        <span className="font-bold text-base text-gray-800 truncate">{item.title}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <MapPin size={11} /> {item.region}
-                        </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} /> {item.time}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[#ff8a3d] font-bold text-sm whitespace-nowrap">{item.price}</span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-        </main>
       </div>
     </div>
   );
