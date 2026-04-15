@@ -11,6 +11,7 @@ const REGIONS     = ["전체", "홍대", "강남", "성수", "합정", "건대",
 const PURPOSES    = ["전체", "레슨 받기", "강사 구인", "강사 구직"];
 
 // ── 플랫폼 정의 ──────────────────────────────────────────────
+// getUrl(instrument, region) — 각 플랫폼의 실제 검색 URL 규칙을 그대로 반영
 
 const PLATFORMS = [
   {
@@ -21,8 +22,10 @@ const PLATFORMS = [
     tips: ["전문가 위주", "구인 전문"],
     tipColor: "bg-blue-100 text-blue-600",
     border: "border-blue-200",
-    getUrl: (kw: string) =>
-      `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(kw || "음악 강사")}`,
+    getUrl: (instrument: string, region: string) => {
+      const query = encodeURIComponent(`${instrument} ${region}`.trim());
+      return `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${query}`;
+    },
   },
   {
     name: "당근",
@@ -32,8 +35,10 @@ const PLATFORMS = [
     tips: ["동네 기반", "입문자 많음"],
     tipColor: "bg-orange-100 text-orange-600",
     border: "border-orange-200",
-    getUrl: (kw: string) =>
-      `https://www.daangn.com/search/${encodeURIComponent(kw || "음악 레슨")}`,
+    getUrl: (instrument: string, region: string) => {
+      const query = encodeURIComponent(`${instrument} ${region}`.trim());
+      return `https://www.daangn.com/search/${query}`;
+    },
   },
   {
     name: "숨고",
@@ -43,8 +48,11 @@ const PLATFORMS = [
     tips: ["매칭 최적", "리뷰 검증"],
     tipColor: "bg-purple-100 text-purple-600",
     border: "border-purple-200",
-    getUrl: (kw: string) =>
-      `https://soomgo.com/search?query=${encodeURIComponent(kw || "음악 강사")}`,
+    // 숨고는 악기명만 인식 — 지역 제외
+    getUrl: (instrument: string, _region: string) => {
+      const query = encodeURIComponent(instrument || "음악 강사");
+      return `https://soomgo.com/search?query=${query}`;
+    },
   },
   {
     name: "크몽",
@@ -54,8 +62,10 @@ const PLATFORMS = [
     tips: ["프리랜서", "단기 레슨"],
     tipColor: "bg-emerald-100 text-emerald-600",
     border: "border-emerald-200",
-    getUrl: (kw: string) =>
-      `https://kmong.com/search?keyword=${encodeURIComponent(kw || "음악 레슨")}`,
+    getUrl: (instrument: string, region: string) => {
+      const query = encodeURIComponent(`${instrument} ${region}`.trim());
+      return `https://kmong.com/search?keyword=${query}`;
+    },
   },
 ];
 
@@ -150,13 +160,20 @@ const PlatformGateway = () => {
     });
   };
 
-  const handlePlatformClick = (platformName: string, url: string) => {
-    // 토스트 메시지 표시
-    setToast(`${platformName}에서 '${keyword}' 검색 결과를 불러오는 중...`);
+  // window.open은 반드시 클릭 핸들러 내에서 동기적으로 호출해야 팝업 차단을 피할 수 있음
+  const handlePlatformClick = (
+    e: React.MouseEvent,
+    platformName: string,
+    inst: string,
+    reg: string,
+    getUrl: (i: string, r: string) => string,
+  ) => {
+    e.preventDefault();
+    const url = getUrl(inst || "음악 강사", reg || "");
+    window.open(url, "_blank");   // 동기 호출 — 팝업 차단 우회
+    setToast(`${platformName}에서 '${[inst, reg].filter(Boolean).join(" ")}' 검색 결과를 불러오는 중...`);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 2500);
-    // 새 창으로 열기
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const selectClass =
@@ -284,7 +301,7 @@ const PlatformGateway = () => {
             {PLATFORMS.map((p) => (
               <button
                 key={p.name}
-                onClick={() => handlePlatformClick(p.name, p.getUrl(keyword))}
+                onClick={(e) => handlePlatformClick(e, p.name, instrument, region, p.getUrl)}
                 className={`w-full flex items-center gap-3 bg-white border-2 ${p.border} rounded-2xl px-4 py-3 hover:shadow-md transition-all group text-left`}
               >
                 {/* 아이콘 */}

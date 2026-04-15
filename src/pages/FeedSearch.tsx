@@ -13,6 +13,102 @@ import {
   Plus, ArrowUpRight, Sparkles, ChevronRight,
 } from "lucide-react";
 
+// ── 플랫폼 점프 섹션 (FeedSearch 전용 대형 버튼) ─────────────
+
+const QUICK_PLATFORMS = [
+  {
+    name: "뮬",     emoji: "🔵", color: "bg-blue-600   hover:bg-blue-700",
+    getUrl: (i: string, r: string) =>
+      `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(`${i} ${r}`.trim())}`,
+  },
+  {
+    name: "당근",   emoji: "🥕", color: "bg-orange-500 hover:bg-orange-600",
+    getUrl: (i: string, r: string) =>
+      `https://www.daangn.com/search/${encodeURIComponent(`${i} ${r}`.trim())}`,
+  },
+  {
+    name: "숨고",   emoji: "🔮", color: "bg-purple-600  hover:bg-purple-700",
+    getUrl: (i: string, _r: string) =>
+      `https://soomgo.com/search?query=${encodeURIComponent(i || "음악 강사")}`,
+  },
+  {
+    name: "크몽",   emoji: "💚", color: "bg-emerald-600 hover:bg-emerald-700",
+    getUrl: (i: string, r: string) =>
+      `https://kmong.com/search?keyword=${encodeURIComponent(`${i} ${r}`.trim())}`,
+  },
+];
+
+const QUICK_INSTRUMENTS = ["악기 전체", "보컬", "피아노", "기타", "드럼", "작곡·미디"];
+const QUICK_REGIONS     = ["지역 전체", "홍대", "강남", "성수", "합정", "건대", "잠실", "분당"];
+
+function QuickPlatformSection() {
+  const [inst,   setInst]   = useState("악기 전체");
+  const [region, setRegion] = useState("지역 전체");
+  const [toast,  setToast]  = useState("");
+
+  const rawInst   = inst   === "악기 전체" ? "" : inst;
+  const rawRegion = region === "지역 전체" ? "" : region;
+  const label     = [rawInst, rawRegion].filter(Boolean).join(" ") || "음악 레슨";
+
+  const handleClick = (p: typeof QUICK_PLATFORMS[number]) => {
+    const url = p.getUrl(rawInst || "음악 강사", rawRegion);
+    window.open(url, "_blank");   // 동기 호출 — 팝업 차단 우회
+    setToast(`${p.name}에서 '${label}' 검색 중...`);
+    setTimeout(() => setToast(""), 2200);
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-md overflow-hidden">
+      {/* 헤더 */}
+      <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-5 py-3.5 flex items-center gap-2">
+        <span className="text-xl">🚀</span>
+        <p className="text-white font-extrabold text-sm">외부 플랫폼 바로 검색</p>
+      </div>
+
+      {/* 필터 */}
+      <div className="px-4 pt-4 pb-3 flex gap-2">
+        <select
+          value={inst}
+          onChange={(e) => setInst(e.target.value)}
+          className="flex-1 rounded-xl border-2 border-gray-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-gray-400 bg-white"
+        >
+          {QUICK_INSTRUMENTS.map((v) => <option key={v}>{v}</option>)}
+        </select>
+        <select
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          className="flex-1 rounded-xl border-2 border-gray-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-gray-400 bg-white"
+        >
+          {QUICK_REGIONS.map((v) => <option key={v}>{v}</option>)}
+        </select>
+      </div>
+
+      {/* 대형 버튼 2×2 */}
+      <div className="px-4 pb-4 grid grid-cols-2 gap-3">
+        {QUICK_PLATFORMS.map((p) => (
+          <button
+            key={p.name}
+            onClick={() => handleClick(p)}
+            className={`${p.color} text-white rounded-2xl py-5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm`}
+          >
+            <span className="text-3xl">{p.emoji}</span>
+            <span className="font-extrabold text-lg leading-none">{p.name}</span>
+            <span className="text-white/70 text-xs font-medium truncate max-w-full px-2">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="mx-4 mb-4 flex items-center gap-2 bg-gray-800 text-white text-xs font-semibold rounded-xl px-4 py-3">
+          <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 고정 큐레이션 공고 (직접 입력) ───────────────────────────
 
 interface JobPost {
@@ -224,8 +320,8 @@ const FeedSearch = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
-        {/* ── 통합 검색 게이트웨이 ── */}
-        <PlatformGateway />
+        {/* ── 외부 플랫폼 직접 검색 (대형 버튼) ── */}
+        <QuickPlatformSection />
 
         {/* ── 타이틀 ── */}
         <div>
