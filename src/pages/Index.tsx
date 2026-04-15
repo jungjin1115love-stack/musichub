@@ -169,7 +169,7 @@ const Index = () => {
             <SectionHeader icon={<Briefcase size={20} />} title="구인/구직" sub="학원 채용 정보" />
             <div className="space-y-3">
               {JOBS.map((job) => (
-                <Card key={job.id} className="rounded-2xl border border-orange-100 shadow-none">
+                <Card key={job.id} className="rounded-2xl border border-orange-100 shadow-none bg-orange-50">
                   <CardContent className="p-4 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -200,7 +200,7 @@ const Index = () => {
             <SectionHeader icon={<Music size={20} />} title="레슨/매칭" sub="강사 찾기" />
             <div className="space-y-3">
               {LESSONS.map((lesson) => (
-                <Card key={lesson.id} className="rounded-2xl border border-orange-100 shadow-none">
+                <Card key={lesson.id} className="rounded-2xl border border-orange-100 shadow-none bg-yellow-50">
                   <CardContent className="p-4 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -233,7 +233,7 @@ const Index = () => {
             <SectionHeader icon={<School size={20} />} title="학원 소식" sub="우리 동네 학원" />
             <div className="space-y-3">
               {ACADEMIES.map((academy) => (
-                <Card key={academy.id} className="rounded-2xl border border-orange-100 shadow-none">
+                <Card key={academy.id} className="rounded-2xl border border-orange-100 shadow-none bg-green-50">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="font-bold text-base text-gray-800">{academy.name}</span>
@@ -266,7 +266,7 @@ const Index = () => {
             <SectionHeader icon={<MessageCircle size={20} />} title="커뮤니티" sub="악기 · 정보" />
             <div className="space-y-3">
               {COMMUNITY.map((item) => (
-                <Card key={item.id} className="rounded-2xl border border-orange-100 shadow-none">
+                <Card key={item.id} className="rounded-2xl border border-orange-100 shadow-none bg-blue-50">
                   <CardContent className="p-4 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
