@@ -3,8 +3,11 @@ import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, ExternalLink, Search, X, RefreshCw, Wifi, WifiOff } from "lucide-react";
-import { checkServerHealth, fetchMuleJobs, searchFeed, type ScrapedItem } from "@/lib/scrapers/feedClient";
+import { MapPin, Clock, ExternalLink, Search, X, RefreshCw, Wifi, WifiOff, ArrowUpRight } from "lucide-react";
+import {
+  checkServerHealth, fetchMuleJobs, searchFeed,
+  type ScrapedItem, type ScrapeErrorType,
+} from "@/lib/scrapers/feedClient";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -156,43 +159,55 @@ const FeedSearch = () => {
   const [query,       setQuery]       = useState("");
   const [platform,    setPlatform]    = useState<Platform | "전체">("전체");
   const [category,    setCategory]    = useState("전체");
-  const [serverOnline, setServerOnline] = useState<boolean | null>(null); // null=확인중
-  const [liveItems,   setLiveItems]   = useState<ScrapedItem[]>([]);
-  const [loading,     setLoading]     = useState(false);
-  const [liveError,   setLiveError]   = useState<string | null>(null);
+  const [serverOnline,  setServerOnline]  = useState<boolean | null>(null);
+  const [liveItems,     setLiveItems]     = useState<ScrapedItem[]>([]);
+  const [loading,       setLoading]       = useState(false);
+  const [scrapeError,   setScrapeError]   = useState<{
+    type: ScrapeErrorType; message?: string; fallbackUrl?: string;
+  } | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 서버 상태 확인 (컴포넌트 마운트 시)
+  // 서버 상태 확인
   useEffect(() => {
     checkServerHealth().then(setServerOnline);
   }, []);
 
-  // 서버가 온라인이면 뮬 최신 목록 자동 로드
+  // 서버 온라인 → 최신 목록 자동 로드
   useEffect(() => {
     if (!serverOnline) return;
     setLoading(true);
-    fetchMuleJobs()
-      .then(setLiveItems)
-      .catch((e) => setLiveError(e.message))
-      .finally(() => setLoading(false));
+    setScrapeError(null);
+    fetchMuleJobs().then(({ items, errorType, message, fallbackUrl }) => {
+      if (errorType) {
+        setScrapeError({ type: errorType, message, fallbackUrl });
+      } else {
+        setLiveItems(items);
+      }
+    }).finally(() => setLoading(false));
   }, [serverOnline]);
 
-  // 검색어 입력 시 300ms 디바운스 후 서버 검색
+  // 검색어 디바운스 → 서버 검색
   useEffect(() => {
     if (!serverOnline || !query.trim()) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       setLoading(true);
-      searchFeed(query.trim())
-        .then(setLiveItems)
-        .catch((e) => setLiveError(e.message))
-        .finally(() => setLoading(false));
-    }, 300);
+      setScrapeError(null);
+      searchFeed(query.trim()).then(({ items, errorType, message, fallbackUrl }) => {
+        if (errorType) {
+          setScrapeError({ type: errorType, message, fallbackUrl });
+        } else {
+          setLiveItems(items);
+        }
+      }).finally(() => setLoading(false));
+    }, 400);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [query, serverOnline]);
 
-  // 표시할 데이터: 서버 온라인이면 실시간 데이터, 아니면 더미 데이터
-  const sourceItems: FeedItemUnified[] = serverOnline ? liveItems : FEED_ITEMS;
+  // 스크래핑 실패 시 더미 데이터로 폴백
+  const usingFallback = serverOnline === true && !!scrapeError;
+  const sourceItems: FeedItemUnified[] =
+    serverOnline && !scrapeError ? liveItems : FEED_ITEMS;
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -227,32 +242,67 @@ const FeedSearch = () => {
           <p className="text-sm text-gray-500 mt-0.5">외부 플랫폼의 최신 음악 구인·레슨 정보를 통합해서 보여드려요</p>
         </div>
 
-        {/* 서버 상태 배너 */}
+        {/* ── 서버 상태 배너 ── */}
         {serverOnline === null && (
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-gray-500">
             <RefreshCw size={14} className="animate-spin" />
-            스크래핑 서버 연결 확인 중...
+            서버 연결 확인 중...
           </div>
         )}
-        {serverOnline === true && (
+        {serverOnline === true && !scrapeError && (
           <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-green-700">
             <Wifi size={14} />
-            <span><strong>실시간 수집 ON</strong> — 뮬 외부 데이터를 가져오고 있습니다</span>
+            <span><strong>실시간 수집 ON</strong> — 뮬 데이터를 가져오고 있습니다</span>
             {loading && <RefreshCw size={12} className="animate-spin ml-auto" />}
           </div>
         )}
         {serverOnline === false && (
-          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-amber-700">
+          <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-amber-700 flex-wrap">
             <div className="flex items-center gap-2">
               <WifiOff size={14} />
-              <span>스크래핑 서버 미실행 — <strong>샘플 데이터</strong> 표시 중</span>
+              <span>서버 미실행 — <strong>샘플 데이터</strong> 표시 중</span>
             </div>
-            <code className="text-xs bg-amber-100 px-2 py-0.5 rounded font-mono">cd server && npm i && node index.js</code>
+            <code className="text-xs bg-amber-100 px-2 py-0.5 rounded font-mono">npm run server</code>
           </div>
         )}
-        {liveError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4 text-xs text-red-600">
-            ⚠️ {liveError} — CSS 셀렉터를 사이트 실제 DOM에 맞게 수정해야 합니다.
+
+        {/* ── 스크래핑 실패 (403 등) 친화적 안내 ── */}
+        {usingFallback && scrapeError && (
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0">
+                {scrapeError.type === "403" ? "🚧" :
+                 scrapeError.type === "429" ? "⏳" :
+                 scrapeError.type === "timeout" ? "🐢" : "📡"}
+              </span>
+              <div className="flex-1">
+                <p className="font-extrabold text-gray-800 text-sm mb-1">
+                  {scrapeError.type === "403"
+                    ? "외부 사이트가 자동 수집을 차단했습니다"
+                    : scrapeError.type === "429"
+                    ? "요청이 너무 많습니다. 잠시 후 다시 시도해주세요"
+                    : scrapeError.type === "timeout"
+                    ? "외부 사이트 응답이 너무 느립니다"
+                    : "외부 정보를 불러오는 중 문제가 발생했습니다"}
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                  현재 외부 정보를 불러오는 중입니다. 잠시 후 다시 시도하거나
+                  원문 사이트에서 직접 확인해주세요.
+                  <br />아래에는 <strong>샘플 데이터</strong>가 표시됩니다.
+                </p>
+                {scrapeError.fallbackUrl && (
+                  <a
+                    href={scrapeError.fallbackUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-[#ff8a3d] text-white rounded-xl px-4 py-2 text-sm font-bold hover:bg-[#e07030] transition-colors"
+                  >
+                    <ArrowUpRight size={14} />
+                    뮬 원문 사이트 바로가기
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -320,6 +370,30 @@ const FeedSearch = () => {
           {results.length}개의 정보
           {query && <span> — "<span className="text-[#ff8a3d] font-semibold">{query}</span>" 검색 결과</span>}
         </p>
+
+        {/* 폴백 모드: 뮬 다이렉트 링크 버튼 */}
+        {(usingFallback || serverOnline === false) && (
+          <div className="flex items-center justify-between bg-white border border-orange-200 rounded-2xl px-4 py-3 mb-4 gap-3">
+            <div>
+              <p className="font-bold text-sm text-gray-700">🔍 뮬에서 직접 검색하기</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {query ? `"${query}" 검색 결과를 원문 사이트에서 확인하세요` : "뮬 구인/구직 게시판으로 바로 이동"}
+              </p>
+            </div>
+            <a
+              href={
+                query
+                  ? `https://www.mule.co.kr/bbs/search.php?sfl=wr_subject%7Cwr_content&stx=${encodeURIComponent(query)}&bo_table=job`
+                  : "https://www.mule.co.kr/bbs/board.php?bo_table=job"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 inline-flex items-center gap-1 bg-blue-100 text-blue-700 rounded-xl px-3 py-2 text-xs font-bold hover:bg-blue-200 transition-colors"
+            >
+              뮬 바로가기 <ArrowUpRight size={12} />
+            </a>
+          </div>
+        )}
 
         {/* Feed List */}
         <div className="space-y-3">
