@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -129,6 +130,32 @@ const FeedSearch = () => {
   const [showForm,   setShowForm]   = useState(false);
   const [form,       setForm]       = useState({ ...EMPTY_FORM });
   const [submitted,  setSubmitted]  = useState(false);
+  const [loading,    setLoading]    = useState(false);
+
+  // Supabase에서 등록된 공고 불러오기 (INITIAL_POSTS 앞에 붙임)
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from("feed_posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error || !data) return;
+      const mapped: JobPost[] = data.map((row) => ({
+        id:       row.id,
+        title:    row.title,
+        place:    row.place,
+        region:   row.region,
+        category: row.category,
+        salary:   row.salary,
+        desc:     row.desc,
+        urgent:   row.urgent,
+        postedAt: row.posted_at,
+        source:   row.source,
+      }));
+      setPosts([...mapped, ...INITIAL_POSTS]);
+    };
+    fetchPosts();
+  }, []);
 
   // 검색·필터
   const results = posts.filter((p) => {
@@ -147,20 +174,42 @@ const FeedSearch = () => {
     ? `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(query.trim())}`
     : "https://www.mule.co.kr/bbs/info/recruit";
 
-  // 공고 등록 제출
-  const handleSubmit = () => {
+  // 공고 등록 제출 (Supabase INSERT)
+  const handleSubmit = async () => {
     if (!form.title.trim() || !form.place.trim()) return;
+    setLoading(true);
+    const payload = {
+      title:     form.title,
+      place:     form.place,
+      region:    form.region || "미입력",
+      category:  form.category,
+      salary:    form.salary || "협의",
+      desc:      form.desc,
+      urgent:    form.urgent,
+      posted_at: new Date().toISOString().slice(0, 10),
+      source:    "자체등록",
+    };
+    const { data, error } = await supabase
+      .from("feed_posts")
+      .insert(payload)
+      .select()
+      .single();
+    setLoading(false);
+    if (error || !data) {
+      alert("등록 중 오류가 발생했습니다. 다시 시도해주세요.");
+      return;
+    }
     const newPost: JobPost = {
-      id:       Date.now(),
-      title:    form.title,
-      place:    form.place,
-      region:   form.region || "미입력",
-      category: form.category,
-      salary:   form.salary || "협의",
-      desc:     form.desc,
-      urgent:   form.urgent,
-      postedAt: new Date().toISOString().slice(0, 10),
-      source:   "자체등록",
+      id:       data.id,
+      title:    data.title,
+      place:    data.place,
+      region:   data.region,
+      category: data.category,
+      salary:   data.salary,
+      desc:     data.desc,
+      urgent:   data.urgent,
+      postedAt: data.posted_at,
+      source:   data.source,
     };
     setPosts((prev) => [newPost, ...prev]);
     setForm({ ...EMPTY_FORM });
@@ -426,14 +475,14 @@ const FeedSearch = () => {
               {/* 제출 */}
               <Button
                 onClick={handleSubmit}
-                disabled={!form.title.trim() || !form.place.trim()}
+                disabled={!form.title.trim() || !form.place.trim() || loading}
                 className="w-full bg-[#ff8a3d] hover:bg-[#e07030] disabled:opacity-40 text-white rounded-2xl h-13 text-base font-extrabold py-4"
               >
-                공고 등록하기
+                {loading ? "등록 중…" : "공고 등록하기"}
               </Button>
 
               <p className="text-center text-xs text-gray-400">
-                등록된 공고는 현재 앱에서만 확인 가능합니다 (로컬 저장)
+                등록된 공고는 누구나 볼 수 있으며, 새로고침 후에도 유지됩니다.
               </p>
             </div>
           )}
