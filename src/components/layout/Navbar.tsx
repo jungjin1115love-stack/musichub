@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { path: "/instructors", label: "선생님 찾기", emoji: "🎓" },
   { path: "/jobs",        label: "학원 일자리", emoji: "💼" },
   { path: "/academies",   label: "내 주변 학원", emoji: "🏫" },
+  { path: "/feed",        label: "모아보기",    emoji: "📋" },
 ];
 
 const Navbar = () => {

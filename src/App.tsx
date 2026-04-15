@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import InstructorSearch from "./pages/InstructorSearch.tsx";
 import JobSearch from "./pages/JobSearch.tsx";
 import AcademySearch from "./pages/AcademySearch.tsx";
+import FeedSearch from "./pages/FeedSearch.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/instructors" element={<InstructorSearch />} />
           <Route path="/jobs" element={<JobSearch />} />
           <Route path="/academies" element={<AcademySearch />} />
+          <Route path="/feed" element={<FeedSearch />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
