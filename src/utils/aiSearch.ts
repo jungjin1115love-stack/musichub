@@ -85,6 +85,12 @@ function toUrl(base: string, kw: string): string {
   return base + encodeURIComponent(kw);
 }
 
+// 뮬은 공백을 + 로 처리해야 제목(f=title) 검색이 정상 작동함
+function toMuleUrl(kw: string): string {
+  return "https://www.mule.co.kr/bbs/info/recruit?f=title&q="
+    + encodeURIComponent(kw).replace(/%20/g, "+");
+}
+
 // ── 메인 분석 함수 ────────────────────────────────────────────
 
 export function analyzePlatforms(
@@ -106,7 +112,7 @@ export function analyzePlatforms(
       platform:  "뮬",
       emoji:     "🔵",
       keyword:   muleKw,
-      url:       toUrl("https://www.mule.co.kr/bbs/info/recruit?f=title&q=", muleKw),
+      url:       toMuleUrl(muleKw),
       reason:    "실용음악인 커뮤니티 — 경력직·세션 구인 가장 활발",
       accent:    "bg-blue-600",
       light:     "bg-blue-50",

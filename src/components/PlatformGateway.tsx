@@ -23,7 +23,7 @@ const PLATFORMS = [
     tipColor: "bg-blue-100 text-blue-600",
     border: "border-blue-200",
     getUrl: (instrument: string, region: string) => {
-      const query = encodeURIComponent(`${instrument} ${region}`.trim());
+      const query = encodeURIComponent(`${instrument} ${region}`.trim()).replace(/%20/g, "+");
       return `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${query}`;
     },
   },

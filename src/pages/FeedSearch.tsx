@@ -356,7 +356,7 @@ const FeedSearch = () => {
 
   // 뮬 URL
   const muleUrl = query.trim()
-    ? `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(query.trim())}`
+    ? `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(query.trim()).replace(/%20/g, "+")}`
     : "https://www.mule.co.kr/bbs/info/recruit";
 
   // 공고 등록 제출 (Supabase INSERT)
