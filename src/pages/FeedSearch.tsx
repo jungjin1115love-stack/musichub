@@ -1,362 +1,443 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, ExternalLink, Search, X, ArrowUpRight, Sparkles } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  MapPin, Clock, ExternalLink, Search,
+  Plus, ArrowUpRight, Sparkles, ChevronRight,
+} from "lucide-react";
 
-// ── 외부 플랫폼 다이렉트 링크 설정 ──────────────────────────
+// ── 고정 큐레이션 공고 (직접 입력) ───────────────────────────
 
-interface PlatformLink {
-  id:         string;
-  name:       string;
-  emoji:      string;
-  desc:       string;
-  bgColor:    string;
-  textColor:  string;
-  baseUrl:    string;
-  searchUrl:  (q: string) => string;
+interface JobPost {
+  id:       number;
+  title:    string;
+  place:    string;   // 학원명 또는 강사명
+  region:   string;
+  category: string;
+  salary:   string;
+  desc:     string;
+  urgent:   boolean;
+  postedAt: string;
+  source:   string;   // "자체등록" | "뮬" | "당근" 등
 }
 
-const PLATFORM_LINKS: PlatformLink[] = [
+const INITIAL_POSTS: JobPost[] = [
   {
-    id: "mule", name: "뮬(Mule)", emoji: "🔵",
-    desc: "실용음악 전문 커뮤니티 · 구인/구직",
-    bgColor: "bg-blue-50", textColor: "text-blue-700",
-    baseUrl: "https://www.mule.co.kr/bbs/board.php?bo_table=job",
-    searchUrl: (q) =>
-      `https://www.mule.co.kr/bbs/search.php?sfl=wr_subject%7Cwr_content&stx=${encodeURIComponent(q)}&bo_table=job`,
+    id: 1,
+    title: "보컬 강사 모집 (풀타임, 즉시 출근)",
+    place: "소리나무 실용음악학원",
+    region: "서울 마포 (홍대입구역 5분)",
+    category: "보컬", salary: "월 280만~330만",
+    urgent: true, postedAt: "2026-04-14", source: "자체등록",
+    desc: "입시·취미반 병행 지도 가능하신 분 우대. 경력 2년 이상. 인원 충원 시 마감.",
   },
   {
-    id: "daangn", name: "당근마켓", emoji: "🟠",
-    desc: "우리 동네 음악 레슨 · 악기 거래",
-    bgColor: "bg-orange-50", textColor: "text-orange-700",
-    baseUrl: "https://www.daangn.com/search/음악%20레슨",
-    searchUrl: (q) =>
-      `https://www.daangn.com/search/${encodeURIComponent(q)}`,
+    id: 2,
+    title: "재즈피아노 파트타임 강사",
+    place: "블루노트 아카데미",
+    region: "서울 강남 (강남구청역)",
+    category: "건반", salary: "시급 4만원",
+    urgent: false, postedAt: "2026-04-13", source: "자체등록",
+    desc: "주 2~3회, 오후 2시~8시 가능하신 분. 재즈 이론 수업 필수. 성인 취미반 특화.",
   },
   {
-    id: "soomgo", name: "숨고", emoji: "🟣",
-    desc: "전문 강사 매칭 서비스",
-    bgColor: "bg-purple-50", textColor: "text-purple-700",
-    baseUrl: "https://soomgo.com/profile/search?term=음악",
-    searchUrl: (q) =>
-      `https://soomgo.com/profile/search?term=${encodeURIComponent(q)}`,
+    id: 3,
+    title: "드럼 전임 강사 급구",
+    place: "비트팩토리",
+    region: "경기 성남 (야탑역 3분)",
+    category: "드럼", salary: "월 260만~290만",
+    urgent: true, postedAt: "2026-04-14", source: "자체등록",
+    desc: "경력 무관 지원 가능. 즉시 출근 가능자 우대. 면접 후 근무 조건 협의.",
   },
   {
-    id: "kmong", name: "크몽", emoji: "🟣",
-    desc: "음악 레슨 · 작곡 전문 프리랜서",
-    bgColor: "bg-violet-50", textColor: "text-violet-700",
-    baseUrl: "https://kmong.com/search?type=gigs&keyword=음악+레슨",
-    searchUrl: (q) =>
-      `https://kmong.com/search?type=gigs&keyword=${encodeURIComponent(q)}`,
-  },
-];
-
-// ── 큐레이션 더미 데이터 (직접 입력 추천 공고) ──────────────
-
-type Platform = "뮬" | "당근" | "숨고" | "크몽";
-
-const CURATED_ITEMS = [
-  {
-    id: 1, platform: "뮬" as Platform,
-    title: "보컬 강사 구인 (홍대 학원, 풀타임)",
-    region: "서울 마포", category: "보컬", time: "23분 전",
-    url: "https://www.mule.co.kr/bbs/board.php?bo_table=job",
-    desc: "경력 2년 이상, 입시·취미반 병행 지도 가능하신 분. 월 300만원 이상.",
+    id: 4,
+    title: "기타 레슨합니다 — 초·중급 전문",
+    place: "박준영 강사 (개인)",
+    region: "경기 수원·화성 (방문 가능)",
+    category: "기타", salary: "회당 5만원",
+    urgent: false, postedAt: "2026-04-12", source: "자체등록",
+    desc: "어쿠스틱·일렉·핑거스타일 모두 가능. 버클리 음대 졸업. 주 1회부터 시작 OK.",
   },
   {
-    id: 2, platform: "뮬" as Platform,
-    title: "기타 강사 파트타임 모집 — 즉시 출근 가능자 우대",
-    region: "서울 강남", category: "기타", time: "1시간 전",
-    url: "https://www.mule.co.kr/bbs/board.php?bo_table=job",
-    desc: "주 3회, 오후 2~8시 가능하신 분. 시급 4만원. 어쿠스틱/일렉 모두 환영.",
+    id: 5,
+    title: "보컬 트레이닝 — K-POP · 뮤지컬 전문",
+    place: "이수진 보컬 트레이너",
+    region: "서울 전체 (온라인 가능)",
+    category: "보컬", salary: "회당 6만원",
+    urgent: false, postedAt: "2026-04-11", source: "자체등록",
+    desc: "한양대 실용음악과 졸업. 입시·오디션·취미 전 레벨. 온라인 레슨 시 영상 피드백 포함.",
   },
   {
-    id: 3, platform: "뮬" as Platform,
-    title: "드럼 전임 강사 급구 (경기 성남)",
-    region: "경기 성남", category: "드럼", time: "2시간 전",
-    url: "https://www.mule.co.kr/bbs/board.php?bo_table=job",
-    desc: "비트팩토리 학원. 경력 무관 지원 가능. 면접 후 즉시 채용.",
+    id: 6,
+    title: "미디 작곡·편곡 강사 모집",
+    place: "사운드랩 아카데미",
+    region: "서울 마포 (합정역)",
+    category: "작곡", salary: "협의",
+    urgent: false, postedAt: "2026-04-10", source: "자체등록",
+    desc: "Logic Pro / Ableton 능숙하신 분. 음원 발매 경험 보유자 우대. 주 3회 이상.",
   },
   {
-    id: 4, platform: "당근" as Platform,
-    title: "기타 레슨 합니다 — 초보자 환영 (부평)",
-    region: "인천 부평", category: "기타", time: "15분 전",
-    url: "https://www.daangn.com/search/기타%20레슨",
-    desc: "10년 경력 기타 강사. 집 근처 방문 레슨 가능. 회당 4만원.",
+    id: 7,
+    title: "피아노 전임 강사 구합니다",
+    place: "뮤직플러스 학원",
+    region: "대구 수성구",
+    category: "건반", salary: "월 250만~280만",
+    urgent: false, postedAt: "2026-04-09", source: "자체등록",
+    desc: "어린이 입문반·성인 취미반 지도. 악보 독보 지도 가능자. 대구 거주자 우대.",
   },
   {
-    id: 5, platform: "당근" as Platform,
-    title: "우리 동네 보컬 레슨 (홍대·합정 근처)",
-    region: "서울 마포", category: "보컬", time: "45분 전",
-    url: "https://www.daangn.com/search/보컬%20레슨",
-    desc: "버클리 음대 출신. K-POP·팝 보컬 전문. 주 1회부터 시작 가능.",
-  },
-  {
-    id: 6, platform: "숨고" as Platform,
-    title: "전문 보컬 트레이너 — 음대 출신, 온/오프라인",
-    region: "서울 전체", category: "보컬", time: "30분 전",
-    url: "https://soomgo.com/profile/search?term=보컬",
-    desc: "한양대 실용음악과. 입시·오디션 전문. 온라인 레슨 가능. 회당 6만원~.",
-  },
-  {
-    id: 7, platform: "숨고" as Platform,
-    title: "기타 강사 — 어쿠스틱·일렉·핑거스타일 전문",
-    region: "서울·경기", category: "기타", time: "1시간 전",
-    url: "https://soomgo.com/profile/search?term=기타",
-    desc: "버클리 음대 졸업. 유튜브 1만 구독자. 입문~고급 전 레벨.",
-  },
-  {
-    id: 8, platform: "크몽" as Platform,
-    title: "1:1 기타 레슨 패키지 (4회/월)",
-    region: "온라인·서울", category: "기타", time: "2시간 전",
-    url: "https://kmong.com/search?type=gigs&keyword=기타+레슨",
-    desc: "4회 패키지 20만원. 입문자 맞춤 커리큘럼. 악보 제공.",
-  },
-  {
-    id: 9, platform: "크몽" as Platform,
-    title: "보컬 레슨 — 영상 피드백 포함 온라인 패키지",
-    region: "온라인", category: "보컬", time: "4시간 전",
-    url: "https://kmong.com/search?type=gigs&keyword=보컬+레슨",
-    desc: "매 수업 영상 녹화 후 세부 피드백 제공. 월 8회 기준 30만원.",
-  },
-  {
-    id: 10, platform: "뮬" as Platform,
-    title: "미디/작곡 강사 모집 (서울 마포)",
-    region: "서울 마포", category: "작곡", time: "3시간 전",
-    url: "https://www.mule.co.kr/bbs/board.php?bo_table=job",
-    desc: "Logic Pro / Ableton 능숙하신 분. 대학 강의 경력 우대. 협의.",
+    id: 8,
+    title: "드럼 레슨 — 초급부터 세션 준비까지",
+    place: "최동욱 드럼 강사",
+    region: "서울 송파 (잠실역)",
+    category: "드럼", salary: "회당 5만원",
+    urgent: false, postedAt: "2026-04-08", source: "자체등록",
+    desc: "현직 세션 드러머. 실전 그루브 중심 레슨. 개인 방음 연습실 보유. 토·일 가능.",
   },
 ];
 
-const PLATFORM_STYLE: Record<Platform, { bg: string; text: string; dot: string }> = {
-  뮬:  { bg: "bg-blue-100",   text: "text-blue-600",   dot: "bg-blue-500" },
-  당근: { bg: "bg-orange-100", text: "text-orange-600", dot: "bg-orange-500" },
-  숨고: { bg: "bg-purple-100", text: "text-purple-600", dot: "bg-purple-500" },
-  크몽: { bg: "bg-violet-100", text: "text-violet-600", dot: "bg-violet-500" },
+const CATEGORIES = ["전체", "보컬", "기타", "건반", "드럼", "작곡"];
+const REGIONS    = ["전체", "서울", "경기", "인천", "부산", "대구", "온라인"];
+
+const CATEGORY_COLOR: Record<string, string> = {
+  보컬: "bg-pink-100 text-pink-600",
+  기타: "bg-green-100 text-green-600",
+  건반: "bg-blue-100 text-blue-600",
+  드럼: "bg-orange-100 text-orange-600",
+  작곡: "bg-purple-100 text-purple-600",
 };
 
-const PLATFORMS: Array<Platform | "전체"> = ["전체", "뮬", "당근", "숨고", "크몽"];
-const CATEGORIES = ["전체", "보컬", "기타", "건반", "드럼", "작곡"];
+// ── 빈 폼 ───────────────────────────────────────────────────
 
-// ── Component ─────────────────────────────────────────────────
+const EMPTY_FORM = {
+  title: "", place: "", region: "", category: "보컬",
+  salary: "", desc: "", urgent: false,
+};
+
+// ── Component ────────────────────────────────────────────────
 
 const FeedSearch = () => {
-  const [query,    setQuery]    = useState("");
-  const [platform, setPlatform] = useState<Platform | "전체">("전체");
-  const [category, setCategory] = useState("전체");
+  const [query,      setQuery]      = useState("");
+  const [category,   setCategory]   = useState("전체");
+  const [region,     setRegion]     = useState("전체");
+  const [posts,      setPosts]      = useState<JobPost[]>(INITIAL_POSTS);
+  const [showForm,   setShowForm]   = useState(false);
+  const [form,       setForm]       = useState({ ...EMPTY_FORM });
+  const [submitted,  setSubmitted]  = useState(false);
 
-  const results = useMemo(() => {
+  // 검색·필터
+  const results = posts.filter((p) => {
     const q = query.trim().toLowerCase();
-    return CURATED_ITEMS.filter((item) => {
-      const matchQuery =
-        !q ||
-        item.title.toLowerCase().includes(q) ||
-        item.region.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q) ||
-        item.desc.toLowerCase().includes(q);
-      const matchPlatform = platform === "전체" || item.platform === platform;
-      const matchCategory = category === "전체" || item.category === category;
-      return matchQuery && matchPlatform && matchCategory;
-    });
-  }, [query, platform, category]);
+    const matchQ = !q ||
+      p.title.toLowerCase().includes(q) ||
+      p.place.toLowerCase().includes(q) ||
+      p.desc.toLowerCase().includes(q);
+    const matchC = category === "전체" || p.category === category;
+    const matchR = region   === "전체" || p.region.startsWith(region);
+    return matchQ && matchC && matchR;
+  });
+
+  // 뮬 URL
+  const muleUrl = query.trim()
+    ? `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(query.trim())}`
+    : "https://www.mule.co.kr/bbs/info/recruit";
+
+  // 공고 등록 제출
+  const handleSubmit = () => {
+    if (!form.title.trim() || !form.place.trim()) return;
+    const newPost: JobPost = {
+      id:       Date.now(),
+      title:    form.title,
+      place:    form.place,
+      region:   form.region || "미입력",
+      category: form.category,
+      salary:   form.salary || "협의",
+      desc:     form.desc,
+      urgent:   form.urgent,
+      postedAt: new Date().toISOString().slice(0, 10),
+      source:   "자체등록",
+    };
+    setPosts((prev) => [newPost, ...prev]);
+    setForm({ ...EMPTY_FORM });
+    setSubmitted(true);
+    setTimeout(() => { setSubmitted(false); setShowForm(false); }, 1200);
+  };
 
   return (
     <div className="min-h-screen bg-[#fff9f5]">
       <Navbar />
 
-      {/* Top banner */}
-      <div className="bg-gradient-to-r from-[#ff8a3d] to-[#ffb347] px-4 py-3">
-        <p className="max-w-2xl mx-auto text-white text-sm font-semibold text-center">
-          📋 뮬 · 당근 · 숨고 · 크몽의 음악 정보를 한 곳에서 확인하세요
-        </p>
-      </div>
-
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
-        {/* ── 점검 안내 배너 ── */}
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl flex-shrink-0">🔧</span>
-            <div>
-              <p className="font-extrabold text-amber-800 text-sm mb-1">
-                실시간 모아보기 기능 점검 중
-              </p>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                현재 외부 사이트 보안 정책으로 인해 실시간 모아보기 기능이 점검 중입니다.
-                대신 아래 버튼을 통해 <strong>가장 빠르게 최신 정보</strong>를 확인하실 수 있습니다.
-              </p>
+        {/* ── 타이틀 ── */}
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-800">📋 공고 모아보기</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            직접 등록한 공고 + 외부 사이트 바로가기
+          </p>
+        </div>
+
+        {/* ── 뮬 실시간 구인 바로가기 (메인 버튼) ── */}
+        <a href={muleUrl} target="_blank" rel="noopener noreferrer">
+          <div className="bg-blue-600 hover:bg-blue-700 transition-colors rounded-2xl px-5 py-4 flex items-center justify-between group cursor-pointer">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🔵</span>
+              <div>
+                <p className="font-extrabold text-white text-base leading-tight">
+                  {query.trim()
+                    ? `뮬에서 "${query}" 실시간 검색`
+                    : "뮬에서 실시간 구인 보기"}
+                </p>
+                <p className="text-blue-200 text-xs mt-0.5">
+                  mule.co.kr 구인/구직 게시판 바로가기
+                </p>
+              </div>
             </div>
+            <ArrowUpRight size={22} className="text-white opacity-70 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+          </div>
+        </a>
+
+        {/* ── 검색 + 필터 ── */}
+        <div className="bg-white rounded-2xl border border-orange-100 p-3 space-y-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='제목·학원명·설명 검색 (예: "기타 강사")'
+              className="w-full rounded-xl border-2 border-orange-200 pl-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select value={category} onChange={(e) => setCategory(e.target.value)}
+              className="flex-1 rounded-xl border-2 border-orange-200 px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white">
+              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+            <select value={region} onChange={(e) => setRegion(e.target.value)}
+              className="flex-1 rounded-xl border-2 border-orange-200 px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white">
+              {REGIONS.map((r) => <option key={r}>{r}</option>)}
+            </select>
           </div>
         </div>
 
         {/* ── 포트폴리오 CTA ── */}
-        <div className="bg-gradient-to-br from-[#ff8a3d] to-[#e85d00] rounded-3xl p-5 text-white">
-          <div className="flex items-start gap-3 mb-4">
-            <span className="text-3xl">🎵</span>
-            <div>
-              <p className="font-extrabold text-lg leading-tight">
-                나만의 프로필 카드로<br />구인 담당자에게 먼저 연락받으세요
-              </p>
-              <p className="text-white/75 text-xs mt-1">
-                연주 영상 + 커리큘럼 카드 하나로 뮬·인스타 공유 가능
+        <Link to="/">
+          <div className="bg-gradient-to-r from-[#ff8a3d] to-[#ffb347] rounded-2xl px-4 py-3 flex items-center justify-between group">
+            <div className="flex items-center gap-3">
+              <Sparkles size={22} className="text-white flex-shrink-0" />
+              <p className="text-white font-extrabold text-sm leading-tight">
+                나만의 프로필 카드로 채용담당자에게 먼저 연락받기
               </p>
             </div>
+            <ChevronRight size={18} className="text-white flex-shrink-0" />
           </div>
-          <Link to="/">
-            <Button className="w-full bg-white text-[#ff8a3d] hover:bg-yellow-50 font-extrabold rounded-xl h-12 text-base gap-2 shadow-md">
-              <Sparkles size={18} />
-              나만의 프로필 카드 만들기 (무료)
-            </Button>
-          </Link>
-        </div>
+        </Link>
 
-        {/* ── 외부 플랫폼 다이렉트 링크 버튼 ── */}
-        <div>
-          <h2 className="font-extrabold text-gray-800 text-base mb-3">
-            🔗 외부 플랫폼 바로가기
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {PLATFORM_LINKS.map((pl) => {
-              const url = query.trim() ? pl.searchUrl(query.trim()) : pl.baseUrl;
-              return (
-                <a
-                  key={pl.id}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${pl.bgColor} ${pl.textColor} rounded-2xl p-4 flex flex-col gap-2 border border-transparent hover:border-current transition-all group`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl">{pl.emoji}</span>
-                    <ArrowUpRight size={15} className="opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <p className="font-extrabold text-sm leading-tight">{pl.name}</p>
-                  <p className="text-xs opacity-70 leading-tight">{pl.desc}</p>
-                  {query.trim() && (
-                    <Badge className={`${pl.bgColor} ${pl.textColor} border border-current text-xs px-2 py-0 w-fit mt-1 font-semibold`}>
-                      "{query}" 검색
-                    </Badge>
-                  )}
-                </a>
-              );
-            })}
-          </div>
-          {query.trim() && (
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              각 플랫폼에서 "<span className="text-[#ff8a3d] font-semibold">{query}</span>" 검색 결과로 바로 이동합니다
-            </p>
-          )}
-        </div>
-
-        {/* ── 큐레이션 공고 리스트 ── */}
+        {/* ── 공고 리스트 ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-extrabold text-gray-800 text-base">
-              ✍️ 추천 공고 모음
-            </h2>
-            <Badge className="bg-orange-100 text-orange-600 border-0 text-xs">직접 큐레이션</Badge>
-          </div>
-
-          {/* 검색 + 필터 */}
-          <div className="bg-white rounded-2xl border border-orange-100 p-3 mb-4 space-y-3">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder='예) "기타 강사", "보컬 레슨"'
-                className="w-full rounded-xl border-2 border-orange-200 pl-9 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  <X size={14} />
-                </button>
-              )}
+            <div>
+              <h2 className="font-extrabold text-gray-800 text-base">📝 등록된 공고</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{results.length}개</p>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value as Platform | "전체")}
-                className="flex-1 rounded-xl border-2 border-orange-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
-              >
-                {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-              </select>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="flex-1 rounded-xl border-2 border-orange-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white"
-              >
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
+            <Button
+              onClick={() => setShowForm(true)}
+              className="bg-[#ff8a3d] hover:bg-[#e07030] text-white rounded-xl h-9 text-sm font-bold gap-1 px-4"
+            >
+              <Plus size={15} /> 공고 등록
+            </Button>
           </div>
-
-          <p className="text-xs text-gray-400 mb-3">{results.length}개의 추천 공고</p>
 
           <div className="space-y-3">
-            {results.map((item) => {
-              const style = PLATFORM_STYLE[item.platform];
-              return (
-                <Card key={item.id} className="rounded-2xl border border-orange-100 shadow-sm bg-white">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <Badge className={`${style.bg} ${style.text} border-0 text-xs px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 gap-1`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${style.dot} inline-block`} />
-                        {item.platform}
-                      </Badge>
-                      <p className="font-bold text-sm text-gray-800 leading-tight">{item.title}</p>
+            {results.map((post) => (
+              <Card key={post.id} className="rounded-2xl border border-orange-100 shadow-sm bg-white">
+                <CardContent className="p-4">
+                  {/* 상단: 뱃지 + 제목 */}
+                  <div className="flex items-start gap-2 mb-2 flex-wrap">
+                    {post.urgent && (
+                      <Badge className="bg-red-500 text-white text-xs px-2 py-0 rounded-full flex-shrink-0">급구</Badge>
+                    )}
+                    <Badge className={`text-xs px-2 py-0 rounded-full border-0 flex-shrink-0 ${CATEGORY_COLOR[post.category] ?? "bg-gray-100 text-gray-500"}`}>
+                      {post.category}
+                    </Badge>
+                    {post.source === "자체등록" && (
+                      <Badge className="bg-orange-100 text-orange-500 border-0 text-xs px-2 py-0 rounded-full flex-shrink-0">자체등록</Badge>
+                    )}
+                  </div>
+                  <p className="font-extrabold text-base text-gray-800 mb-0.5">{post.title}</p>
+                  <p className="text-sm text-[#ff8a3d] font-semibold mb-2">{post.place}</p>
+
+                  {/* 설명 */}
+                  <p className="text-xs text-gray-500 leading-relaxed bg-gray-50 rounded-xl px-3 py-2 mb-3">
+                    {post.desc}
+                  </p>
+
+                  {/* 하단: 정보 + 급여 */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <MapPin size={11} /> {post.region}
+                      </span>
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Clock size={11} /> {post.postedAt}
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500 leading-relaxed mb-3">{item.desc}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <MapPin size={11} /> {item.region}
-                        </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} /> {item.time}
-                        </span>
-                        <Badge variant="outline" className="text-xs px-2 py-0 rounded-full border-orange-200 text-orange-400">
-                          {item.category}
-                        </Badge>
-                      </div>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer">
-                        <Button
-                          size="sm"
-                          className={`${style.bg} ${style.text} border-0 hover:opacity-80 rounded-xl h-8 text-xs font-bold gap-1 shadow-none`}
-                        >
-                          <ExternalLink size={12} />
-                          원문 보기
-                        </Button>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <span className="text-[#ff8a3d] font-extrabold text-sm whitespace-nowrap">
+                      {post.salary}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
             {results.length === 0 && (
-              <div className="text-center py-10 text-gray-400">
+              <div className="text-center py-12 text-gray-400">
                 <p className="text-4xl mb-3">🔍</p>
                 <p className="font-semibold text-gray-500">검색 결과가 없어요</p>
-                <p className="text-sm mt-1">위의 플랫폼 버튼에서 직접 검색해보세요</p>
+                <p className="text-sm mt-1">필터를 바꾸거나 직접 공고를 등록해보세요</p>
+                <Button
+                  onClick={() => setShowForm(true)}
+                  className="mt-4 bg-[#ff8a3d] text-white rounded-xl h-9 text-sm font-bold gap-1"
+                >
+                  <Plus size={14} /> 첫 공고 등록하기
+                </Button>
               </div>
             )}
           </div>
         </div>
 
         {/* Disclaimer */}
-        <p className="text-center text-xs text-gray-400 pb-6 leading-relaxed">
-          ⚠️ 이 정보는 외부 사이트(뮬, 당근마켓, 숨고, 크몽)에서 제공된 정보입니다.<br />
-          정확한 내용은 원문 링크에서 직접 확인해주세요.
+        <p className="text-center text-xs text-gray-400 pb-4 leading-relaxed">
+          ⚠️ 자체 등록 공고는 MusicHub가 내용을 보증하지 않습니다.<br />
+          외부 링크는 해당 사이트에서 직접 확인하세요.
         </p>
       </main>
+
+      {/* ── 공고 등록 Sheet ── */}
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent side="bottom" className="h-[92vh] rounded-t-3xl overflow-y-auto">
+          <SheetHeader className="pb-4 border-b border-gray-100">
+            <SheetTitle className="text-left font-extrabold text-lg text-gray-800">
+              📝 공고 등록
+            </SheetTitle>
+          </SheetHeader>
+
+          {submitted ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <span className="text-6xl">🎉</span>
+              <p className="font-extrabold text-gray-800 text-lg">등록 완료!</p>
+              <p className="text-sm text-gray-500">공고가 리스트 상단에 추가되었습니다.</p>
+            </div>
+          ) : (
+            <div className="py-4 space-y-4">
+
+              {/* 제목 */}
+              <div>
+                <label className="text-sm font-bold text-gray-700 mb-1.5 block">
+                  공고 제목 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="예: 보컬 강사 모집 (풀타임)"
+                  className="w-full rounded-xl border-2 border-orange-200 px-4 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white"
+                />
+              </div>
+
+              {/* 학원/강사명 */}
+              <div>
+                <label className="text-sm font-bold text-gray-700 mb-1.5 block">
+                  학원·강사명 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={form.place}
+                  onChange={(e) => setForm({ ...form, place: e.target.value })}
+                  placeholder="예: 소리나무 실용음악학원"
+                  className="w-full rounded-xl border-2 border-orange-200 px-4 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white"
+                />
+              </div>
+
+              {/* 전공 + 지역 */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-sm font-bold text-gray-700 mb-1.5 block">전공</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="w-full rounded-xl border-2 border-orange-200 px-3 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white"
+                  >
+                    {["보컬", "기타", "건반", "드럼", "작곡"].map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-bold text-gray-700 mb-1.5 block">지역</label>
+                  <input
+                    value={form.region}
+                    onChange={(e) => setForm({ ...form, region: e.target.value })}
+                    placeholder="예: 서울 홍대"
+                    className="w-full rounded-xl border-2 border-orange-200 px-3 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* 급여 */}
+              <div>
+                <label className="text-sm font-bold text-gray-700 mb-1.5 block">급여·레슨비</label>
+                <input
+                  value={form.salary}
+                  onChange={(e) => setForm({ ...form, salary: e.target.value })}
+                  placeholder="예: 월 280만원 / 시급 4만원 / 협의"
+                  className="w-full rounded-xl border-2 border-orange-200 px-4 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white"
+                />
+              </div>
+
+              {/* 설명 */}
+              <div>
+                <label className="text-sm font-bold text-gray-700 mb-1.5 block">상세 내용</label>
+                <textarea
+                  value={form.desc}
+                  onChange={(e) => setForm({ ...form, desc: e.target.value })}
+                  placeholder="자격 요건, 근무 조건, 연락처 등을 자유롭게 입력하세요"
+                  rows={4}
+                  className="w-full rounded-xl border-2 border-orange-200 px-4 py-3 text-sm focus:outline-none focus:border-[#ff8a3d] bg-white resize-none"
+                />
+              </div>
+
+              {/* 급구 체크 */}
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.urgent}
+                  onChange={(e) => setForm({ ...form, urgent: e.target.checked })}
+                  className="w-5 h-5 rounded accent-[#ff8a3d]"
+                />
+                <span className="text-sm font-bold text-gray-700">급구 표시</span>
+                <Badge className="bg-red-500 text-white text-xs px-2 py-0 rounded-full">급구</Badge>
+              </label>
+
+              {/* 제출 */}
+              <Button
+                onClick={handleSubmit}
+                disabled={!form.title.trim() || !form.place.trim()}
+                className="w-full bg-[#ff8a3d] hover:bg-[#e07030] disabled:opacity-40 text-white rounded-2xl h-13 text-base font-extrabold py-4"
+              >
+                공고 등록하기
+              </Button>
+
+              <p className="text-center text-xs text-gray-400">
+                등록된 공고는 현재 앱에서만 확인 가능합니다 (로컬 저장)
+              </p>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
