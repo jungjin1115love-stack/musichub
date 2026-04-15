@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Sparkles, Copy, Check, Bookmark, X } from "lucide-react";
+import { ExternalLink, Sparkles, Copy, Check, Bookmark, X, Loader2 } from "lucide-react";
 
 // ── 옵션 ─────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ const PLATFORMS = [
     tipColor: "bg-purple-100 text-purple-600",
     border: "border-purple-200",
     getUrl: (kw: string) =>
-      `https://soomgo.com/search/user?q=${encodeURIComponent(kw || "음악 강사")}`,
+      `https://soomgo.com/search?query=${encodeURIComponent(kw || "음악 강사")}`,
   },
   {
     name: "크몽",
@@ -113,6 +113,8 @@ const PlatformGateway = () => {
   const [saved,      setSaved]      = useState<SavedCondition[]>([]);
   const [copied,     setCopied]     = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [toast,      setToast]      = useState("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setSaved(loadSaved()); }, []);
 
@@ -146,6 +148,15 @@ const PlatformGateway = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const handlePlatformClick = (platformName: string, url: string) => {
+    // 토스트 메시지 표시
+    setToast(`${platformName}에서 '${keyword}' 검색 결과를 불러오는 중...`);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 2500);
+    // 새 창으로 열기
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const selectClass =
@@ -271,12 +282,10 @@ const PlatformGateway = () => {
           {/* 플랫폼 카드 목록 */}
           <div className="space-y-2.5">
             {PLATFORMS.map((p) => (
-              <a
+              <button
                 key={p.name}
-                href={p.getUrl(keyword)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-3 bg-white border-2 ${p.border} rounded-2xl px-4 py-3 hover:shadow-md transition-all group`}
+                onClick={() => handlePlatformClick(p.name, p.getUrl(keyword))}
+                className={`w-full flex items-center gap-3 bg-white border-2 ${p.border} rounded-2xl px-4 py-3 hover:shadow-md transition-all group text-left`}
               >
                 {/* 아이콘 */}
                 <div className={`w-11 h-11 rounded-xl ${p.iconBg} flex items-center justify-center text-xl flex-shrink-0`}>
@@ -301,9 +310,17 @@ const PlatformGateway = () => {
                   size={16}
                   className="text-gray-300 group-hover:text-[#ff8a3d] transition-colors flex-shrink-0"
                 />
-              </a>
+              </button>
             ))}
           </div>
+
+          {/* 토스트 메시지 */}
+          {toast && (
+            <div className="flex items-center gap-2 bg-gray-800 text-white text-xs font-semibold rounded-2xl px-4 py-3 shadow-lg">
+              <Loader2 size={14} className="animate-spin flex-shrink-0" />
+              <span>{toast}</span>
+            </div>
+          )}
         </div>
       )}
 
