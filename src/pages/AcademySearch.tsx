@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,48 @@ const ACADEMIES = [
     event: "기타 입문반 무료 체험 신청 접수 중", rating: 4.5, reviews: 41,
     isNew: true, time: "2시간 전",
     desc: "부평역 1번 출구. 어쿠스틱·일렉·클래식 기타 전 과정 운영.",
+  },
+  {
+    id: 6, name: "멜로디아 뮤직스쿨", region: "서울 성수", major: ["보컬", "작곡"],
+    event: "🎵 성수 신규 오픈! 첫 달 수강료 무료 이벤트", rating: 4.8, reviews: 37,
+    isNew: true, time: "1일 전",
+    desc: "성수역 3분 거리. 보컬·작곡 전문. 스튜디오 녹음 세션 월 1회 포함.",
+  },
+  {
+    id: 7, name: "재즈클럽 아카데미", region: "서울 이태원", major: ["건반", "기타"],
+    event: "재즈 입문 원데이 클래스 매월 진행", rating: 4.6, reviews: 73,
+    isNew: false, time: "2일 전",
+    desc: "이태원역 1번 출구. 재즈 피아노·기타 전문. 라이브 클럽 무대 연결 프로그램 운영.",
+  },
+  {
+    id: 8, name: "아르페지오 음악학원", region: "서울 잠실", major: ["건반"],
+    event: "콩쿠르 대비반 선착순 10명 모집 중", rating: 4.9, reviews: 156,
+    isNew: false, time: "1일 전",
+    desc: "잠실역 인근. 클래식·입시 피아노 전문. 콩쿠르 수상생 다수 배출.",
+  },
+  {
+    id: 9, name: "리듬팩토리 드럼학원", region: "서울 건대", major: ["드럼"],
+    event: "드럼 기초반 무료 체험 레슨 예약 중", rating: 4.7, reviews: 62,
+    isNew: false, time: "3일 전",
+    desc: "건대입구역 5분. 드럼 전문. 방음 개인 연습실 5개 운영. 밴드 합주실 있음.",
+  },
+  {
+    id: 10, name: "뮤직스퀘어 분당캠퍼스", region: "경기 분당", major: ["작곡", "건반"],
+    event: "🎹 봄학기 등록 할인 이벤트 (5월 말까지)", rating: 4.5, reviews: 48,
+    isNew: false, time: "4일 전",
+    desc: "정자역 도보 7분. 미디·작곡·피아노 복합 커리큘럼. 음원 제작 프로젝트 참여 가능.",
+  },
+  {
+    id: 11, name: "스트링 하우스", region: "서울 합정", major: ["기타"],
+    event: "어쿠스틱 기타 핑거스타일 특강 (6월 개강)", rating: 4.6, reviews: 33,
+    isNew: true, time: "5일 전",
+    desc: "합정역 2번 출구 도보 2분. 기타 전문. 원포인트 레슨 및 그룹 레슨 병행.",
+  },
+  {
+    id: 12, name: "톱싱어 보컬 아카데미", region: "서울 노원", major: ["보컬"],
+    event: "입시 시즌 대비 집중반 6월 개강 예정", rating: 4.8, reviews: 211,
+    isNew: false, time: "6일 전",
+    desc: "노원역 7번 출구. 보컬 입시 전문. 예고·실용음악과 합격률 상위권. 현직 교수 특강 분기 1회.",
   },
 ];
 
@@ -156,6 +199,8 @@ const AcademySearch = () => {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 };

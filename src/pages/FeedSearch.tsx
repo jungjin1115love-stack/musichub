@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -438,6 +439,8 @@ const FeedSearch = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      <Footer />
     </div>
   );
 };

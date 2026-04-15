@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MapPin, Clock, GraduationCap, Briefcase, Play } from "lucide-react";
+import { GraduationCap, Briefcase, Play } from "lucide-react";
 
 // ── Dummy Data ────────────────────────────────────────────────
 
@@ -50,6 +51,55 @@ const INSTRUCTORS: InstructorProfile[] = [
     verifiedSchool: false, verifiedCareer: true,
     curriculum: ["기초 스틱 컨트롤 & 패드 연습", "8비트·16비트 기초 리듬", "필인 & 응용 패턴", "앙상블 & 합주 레슨"],
     kakaoLink: "https://open.kakao.com/", profileId: "choidongwook", emoji: "🥁",
+  },
+  {
+    name: "한지원", major: "보컬", school: "중앙대 음악극과",
+    experience: "9년 경력", tagline: "홍대 클럽 현직 싱어 — 실전 무대 경험을 레슨에 담아요",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["성구 전환 & 믹스보이스", "고음 확장 트레이닝", "감성 표현 & 리릭 해석", "오디션 준비 집중 클래스"],
+    kakaoLink: "https://open.kakao.com/", profileId: "hanjiwon", emoji: "🎤",
+  },
+  {
+    name: "오세훈", major: "베이스 기타", school: "서울종합예술실용학교",
+    experience: "6년 경력", tagline: "밴드 사운드의 뿌리, 베이스를 제대로 배워보세요",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["5선 악보 읽기 & 태블러처", "핑거링 & 슬랩 테크닉", "펑크·재즈·록 스타일 연구", "밴드 합주 트레이닝"],
+    kakaoLink: "https://open.kakao.com/", profileId: "osehun", emoji: "🎸",
+  },
+  {
+    name: "신예린", major: "클래식 피아노", school: "서울대 음악대학 피아노과",
+    experience: "12년 경력", tagline: "콩쿠르 입상 경력, 성수동 스튜디오 레슨 운영 중",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["체르니 & 하농 기초", "소나타·협주곡 레퍼토리", "콩쿠르 대비 집중 지도", "음대 입시 전문 코칭"],
+    kakaoLink: "https://open.kakao.com/", profileId: "shinyerin", emoji: "🎹",
+  },
+  {
+    name: "강태양", major: "색소폰", school: "상명대 실용음악과",
+    experience: "7년 경력", tagline: "합정 재즈바 레지던트 — 재즈부터 보사노바까지",
+    verifiedSchool: true, verifiedCareer: false,
+    curriculum: ["기초 음형 & 운지법", "스케일 & 아르페지오 완성", "재즈 즉흥연주 입문", "앙상블 & 세션 레슨"],
+    kakaoLink: "https://open.kakao.com/", profileId: "kangtaeyang", emoji: "🎷",
+  },
+  {
+    name: "윤서아", major: "작곡 · 편곡", school: "Berklee Online 수료",
+    experience: "4년 경력", tagline: "스트리밍 플랫폼에 음원 냈어요 — 당신도 할 수 있어요",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["화성학 집중 과정", "Cubase·FL Studio 기초", "장르별 믹싱·마스터링", "멜론·스포티파이 발매 가이드"],
+    kakaoLink: "https://open.kakao.com/", profileId: "yoonseoa", emoji: "🎛️",
+  },
+  {
+    name: "임재원", major: "기타", school: "한국예술종합학교",
+    experience: "11년 경력", tagline: "건대 앞 스튜디오 레슨 — 클래식·재즈·팝 전 장르",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["음계 & 코드 이론 정복", "클래식 기타 에튀드", "재즈 보이싱 & 보사노바", "솔로 기타 편곡 실습"],
+    kakaoLink: "https://open.kakao.com/", profileId: "imjaewon", emoji: "🎸",
+  },
+  {
+    name: "조미나", major: "보컬 · 뮤지컬", school: "동덕여대 실용음악과",
+    experience: "8년 경력", tagline: "잠실 뮤지컬 배우 출신 — 연기와 노래를 함께 배워요",
+    verifiedSchool: true, verifiedCareer: true,
+    curriculum: ["호흡 & 딕션 집중 훈련", "뮤지컬 넘버 해석", "댄스 결합 퍼포먼스 레슨", "오디션 실전 모의 진행"],
+    kakaoLink: "https://open.kakao.com/", profileId: "jomina", emoji: "🎭",
   },
 ];
 
@@ -157,6 +207,8 @@ const InstructorSearch = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Footer />
     </div>
   );
 };

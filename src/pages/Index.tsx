@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
 import {
   Sparkles,
@@ -249,6 +250,7 @@ const Index = () => {
         </section>
 
       </div>
+      <Footer />
     </div>
   );
 };
