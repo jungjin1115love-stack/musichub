@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import PlatformGateway from "@/components/PlatformGateway";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,97 +11,186 @@ import {
   MapPin, Clock, ExternalLink, Search,
   Plus, ArrowUpRight, Sparkles, ChevronRight,
 } from "lucide-react";
+import { analyzePlatforms, type PlatformResult } from "@/utils/aiSearch";
 
-// ── 플랫폼 점프 섹션 (FeedSearch 전용 대형 버튼) ─────────────
+// ── AI Platform Curator ───────────────────────────────────────
 
-const QUICK_PLATFORMS = [
-  {
-    name: "뮬",     emoji: "🔵", color: "bg-blue-600   hover:bg-blue-700",
-    getUrl: (i: string, r: string) =>
-      `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${encodeURIComponent(`${i} ${r}`.trim())}`,
-  },
-  {
-    name: "당근",   emoji: "🥕", color: "bg-orange-500 hover:bg-orange-600",
-    getUrl: (i: string, r: string) =>
-      `https://www.daangn.com/search/${encodeURIComponent(`${i} ${r}`.trim())}`,
-  },
-  {
-    name: "숨고",   emoji: "🔮", color: "bg-purple-600  hover:bg-purple-700",
-    getUrl: (i: string, _r: string) =>
-      `https://soomgo.com/search?query=${encodeURIComponent(i || "음악 강사")}`,
-  },
-  {
-    name: "크몽",   emoji: "💚", color: "bg-emerald-600 hover:bg-emerald-700",
-    getUrl: (i: string, r: string) =>
-      `https://kmong.com/search?keyword=${encodeURIComponent(`${i} ${r}`.trim())}`,
-  },
-];
+const AI_INSTRUMENTS = ["전체", "보컬", "피아노", "기타", "드럼", "작곡·미디", "베이스", "바이올린", "색소폰"];
+const AI_REGIONS     = ["전체", "홍대", "강남", "성수", "합정", "건대", "잠실", "노원", "분당", "수원"];
+const AI_PURPOSES    = ["전체", "레슨 받기", "강사 구인", "강사 구직"];
 
-const QUICK_INSTRUMENTS = ["악기 전체", "보컬", "피아노", "기타", "드럼", "작곡·미디"];
-const QUICK_REGIONS     = ["지역 전체", "홍대", "강남", "성수", "합정", "건대", "잠실", "분당"];
+function AIPlatformCurator() {
+  const [instrument, setInstrument] = useState("전체");
+  const [location,   setLocation]   = useState("전체");
+  const [purpose,    setPurpose]    = useState("전체");
+  const [analyzing,  setAnalyzing]  = useState(false);
+  const [results,    setResults]    = useState<PlatformResult[] | null>(null);
+  const [toast,      setToast]      = useState("");
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-function QuickPlatformSection() {
-  const [inst,   setInst]   = useState("악기 전체");
-  const [region, setRegion] = useState("지역 전체");
-  const [toast,  setToast]  = useState("");
+  const inst = instrument === "전체" ? "" : instrument;
+  const loc  = location   === "전체" ? "" : location;
+  const pur  = purpose    === "전체" ? "" : purpose;
+  const hasInput = !!(inst || loc || pur);
 
-  const rawInst   = inst   === "악기 전체" ? "" : inst;
-  const rawRegion = region === "지역 전체" ? "" : region;
-  const label     = [rawInst, rawRegion].filter(Boolean).join(" ") || "음악 레슨";
+  // 조건 변경 시 디바운스 → AI 분석 애니메이션 → 결과
+  useEffect(() => {
+    if (!hasInput) { setResults(null); setAnalyzing(false); return; }
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      setAnalyzing(true);
+      setResults(null);
+      setTimeout(() => {
+        setResults(analyzePlatforms(inst, loc, pur));
+        setAnalyzing(false);
+      }, 1300);
+    }, 350);
+    return () => { if (debounce.current) clearTimeout(debounce.current); };
+  }, [instrument, location, purpose]);
 
-  const handleClick = (p: typeof QUICK_PLATFORMS[number]) => {
-    const url = p.getUrl(rawInst || "음악 강사", rawRegion);
-    window.open(url, "_blank");   // 동기 호출 — 팝업 차단 우회
-    setToast(`${p.name}에서 '${label}' 검색 중...`);
+  const handleOpen = (r: PlatformResult) => {
+    window.open(r.url, "_blank");   // 동기 호출 — 팝업 차단 우회
+    setToast(`${r.platform}에서 '${r.keyword}' 검색 중...`);
     setTimeout(() => setToast(""), 2200);
   };
 
+  const sel = "flex-1 rounded-xl border-2 border-[#ff8a3d]/30 px-2 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#ff8a3d] bg-white";
+
   return (
     <div className="bg-white rounded-3xl shadow-md overflow-hidden">
+
       {/* 헤더 */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-5 py-3.5 flex items-center gap-2">
-        <span className="text-xl">🚀</span>
-        <p className="text-white font-extrabold text-sm">외부 플랫폼 바로 검색</p>
+      <div className="bg-gradient-to-r from-[#ff8a3d] to-[#ffb347] px-5 py-4">
+        <div className="flex items-center gap-2 mb-0.5">
+          <Sparkles size={16} className="text-white" />
+          <p className="text-white font-extrabold text-base">AI 플랫폼 큐레이터</p>
+        </div>
+        <p className="text-white/80 text-xs">조건을 고르면 AI가 플랫폼별 최적 경로를 분석해드립니다</p>
       </div>
 
       {/* 필터 */}
-      <div className="px-4 pt-4 pb-3 flex gap-2">
-        <select
-          value={inst}
-          onChange={(e) => setInst(e.target.value)}
-          className="flex-1 rounded-xl border-2 border-gray-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-gray-400 bg-white"
-        >
-          {QUICK_INSTRUMENTS.map((v) => <option key={v}>{v}</option>)}
-        </select>
-        <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          className="flex-1 rounded-xl border-2 border-gray-200 px-2 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-gray-400 bg-white"
-        >
-          {QUICK_REGIONS.map((v) => <option key={v}>{v}</option>)}
-        </select>
+      <div className="px-4 pt-4 pb-3 space-y-2">
+        <div className="flex gap-2">
+          <select value={instrument} onChange={(e) => setInstrument(e.target.value)} className={sel}>
+            <option value="전체">🎵 악기 전체</option>
+            {AI_INSTRUMENTS.slice(1).map((v) => <option key={v}>{v}</option>)}
+          </select>
+          <select value={location} onChange={(e) => setLocation(e.target.value)} className={sel}>
+            <option value="전체">📍 지역 전체</option>
+            {AI_REGIONS.slice(1).map((v) => <option key={v}>{v}</option>)}
+          </select>
+          <select value={purpose} onChange={(e) => setPurpose(e.target.value)} className={sel}>
+            <option value="전체">🎯 목적 전체</option>
+            {AI_PURPOSES.slice(1).map((v) => <option key={v}>{v}</option>)}
+          </select>
+        </div>
       </div>
 
-      {/* 대형 버튼 2×2 */}
-      <div className="px-4 pb-4 grid grid-cols-2 gap-3">
-        {QUICK_PLATFORMS.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => handleClick(p)}
-            className={`${p.color} text-white rounded-2xl py-5 flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm`}
-          >
-            <span className="text-3xl">{p.emoji}</span>
-            <span className="font-extrabold text-lg leading-none">{p.name}</span>
-            <span className="text-white/70 text-xs font-medium truncate max-w-full px-2">{label}</span>
-          </button>
-        ))}
-      </div>
+      {/* 분석 중 애니메이션 */}
+      {analyzing && (
+        <div className="px-4 pb-5">
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-100 rounded-2xl px-5 py-5 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-2 h-2 bg-[#ff8a3d] rounded-full inline-block"
+                  style={{ animation: `bounce 0.8s ease-in-out ${i * 0.15}s infinite` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm font-extrabold text-gray-700">AI가 플랫폼별 최적의 매칭을 분석 중입니다...</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {[inst, loc, pur].filter(Boolean).join(" · ")} 조건 처리 중
+            </p>
+          </div>
+          <style>{`@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }`}</style>
+        </div>
+      )}
 
-      {/* 토스트 */}
-      {toast && (
-        <div className="mx-4 mb-4 flex items-center gap-2 bg-gray-800 text-white text-xs font-semibold rounded-xl px-4 py-3">
-          <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
-          {toast}
+      {/* 조건 미선택 */}
+      {!hasInput && !analyzing && (
+        <div className="px-4 pb-5">
+          <div className="border-2 border-dashed border-orange-100 rounded-2xl py-6 text-center bg-orange-50/30">
+            <p className="text-2xl mb-1">🤖</p>
+            <p className="text-sm font-semibold text-gray-500">악기·지역·목적을 선택하면</p>
+            <p className="text-sm text-gray-400">AI가 플랫폼별 최적 경로를 추천해드립니다</p>
+          </div>
+        </div>
+      )}
+
+      {/* AI 분석 결과 */}
+      {results && !analyzing && (
+        <div className="px-4 pb-4 space-y-3">
+
+          {/* 최고 매칭 카드 (크게) */}
+          {(() => {
+            const top = results[0];
+            return (
+              <div>
+                <p className="text-xs font-bold text-gray-500 mb-2">🏆 AI 최고 추천</p>
+                <button
+                  onClick={() => handleOpen(top)}
+                  className={`w-full ${top.accent} text-white rounded-2xl px-5 py-4 text-left transition-all active:scale-[0.98] shadow-md`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{top.emoji}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xl leading-none">{top.platform}</span>
+                          <span className="text-white/80 text-xs font-bold bg-white/20 rounded-full px-2 py-0.5">
+                            매칭 {top.score}점
+                          </span>
+                        </div>
+                        <p className="text-white/80 text-xs mt-0.5">{top.reason}</p>
+                      </div>
+                    </div>
+                    <ExternalLink size={18} className="text-white/70 flex-shrink-0 mt-1" />
+                  </div>
+                  <div className="bg-white/15 rounded-xl px-3 py-2">
+                    <p className="text-xs text-white/70 mb-0.5">최적화된 검색어</p>
+                    <p className="font-extrabold text-sm text-white">"{top.keyword}"</p>
+                  </div>
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* 나머지 3개 플랫폼 카드 */}
+          <p className="text-xs font-bold text-gray-500 pt-1">기타 플랫폼</p>
+          <div className="space-y-2">
+            {results.slice(1).map((r) => (
+              <button
+                key={r.platform}
+                onClick={() => handleOpen(r)}
+                className={`w-full flex items-center gap-3 bg-white border-2 ${r.border} rounded-2xl px-4 py-3 hover:shadow-sm transition-all active:scale-[0.98] text-left`}
+              >
+                <div className={`w-10 h-10 ${r.light} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
+                  {r.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`font-extrabold text-sm ${r.textColor}`}>{r.platform}</span>
+                    <Badge className={`${r.light} ${r.textColor} border-0 text-xs px-1.5 py-0 font-semibold`}>
+                      {r.tag}
+                    </Badge>
+                    <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{r.score}점</span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">검색어: <span className="font-semibold text-gray-700">"{r.keyword}"</span></p>
+                </div>
+                <ExternalLink size={14} className="text-gray-300 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+
+          {/* 토스트 */}
+          {toast && (
+            <div className="flex items-center gap-2 bg-gray-800 text-white text-xs font-semibold rounded-xl px-4 py-3">
+              <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
+              {toast}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -320,8 +408,8 @@ const FeedSearch = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
-        {/* ── 외부 플랫폼 직접 검색 (대형 버튼) ── */}
-        <QuickPlatformSection />
+        {/* ── AI 플랫폼 큐레이터 ── */}
+        <AIPlatformCurator />
 
         {/* ── 타이틀 ── */}
         <div>
