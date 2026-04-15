@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import Navbar from "@/components/layout/Navbar";
 import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
 import {
   Sparkles,
@@ -97,18 +98,7 @@ const Index = () => {
       {/* ── Main ── */}
       <div className={`transition-opacity duration-700 ${splashPhase === "done" ? "opacity-100" : "opacity-0"}`}>
 
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-white shadow-sm">
-          <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">🎵</span>
-              <span className="text-2xl font-extrabold text-[#ff8a3d]">MusicHub</span>
-            </div>
-            <Button className="bg-[#ff8a3d] hover:bg-[#e07030] text-white rounded-full px-6 font-bold text-base h-10">
-              로그인
-            </Button>
-          </div>
-        </header>
+        <Navbar />
 
         {/* ── Hero ── */}
         <section className="bg-gradient-to-b from-[#ff8a3d] to-[#ffb347] px-4 pt-10 pb-14">
