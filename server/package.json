@@ -1,6 +1,7 @@
 {
   "name": "musichub-scraper-server",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "MusicHub 외부 정보 수집 프록시 서버",
   "main": "index.js",
   "scripts": {
