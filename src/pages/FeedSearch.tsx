@@ -48,8 +48,30 @@ function AIPlatformCurator() {
     return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [instrument, location, purpose]);
 
-  const handleOpen = (r: PlatformResult) => {
-    window.open(r.url, "_blank");   // 동기 호출 — 팝업 차단 우회
+  // window.open을 onClick 콜스택 안에서 직접 실행 — 비동기 사이에 끼면 팝업 차단됨
+  const openPlatform = (r: PlatformResult) => {
+    const url = r.url;
+
+    // 디버그 로그 (F12 콘솔에서 확인)
+    console.log(`[MusicHub] ${r.platform} 클릭 → URL: ${url}`);
+
+    // window.open 즉시 실행 (동기)
+    let win: Window | null = null;
+    try {
+      win = window.open(url, "_blank");
+    } catch (e) {
+      console.warn(`[MusicHub] window.open 실패:`, e);
+    }
+
+    // 팝업 차단 감지 → 폴백 (숨고는 /search/total 메인으로)
+    if (!win) {
+      console.warn(`[MusicHub] 팝업 차단 감지 — 폴백 실행`);
+      const fallback = r.platform === "숨고"
+        ? "https://soomgo.com/search/total"
+        : url;
+      window.open(fallback, "_blank");
+    }
+
     setToast(`${r.platform}에서 '${r.keyword}' 검색 중...`);
     setTimeout(() => setToast(""), 2200);
   };
@@ -130,7 +152,7 @@ function AIPlatformCurator() {
               <div>
                 <p className="text-xs font-bold text-gray-500 mb-2">🏆 AI 최고 추천</p>
                 <button
-                  onClick={() => handleOpen(top)}
+                  onClick={() => openPlatform(top)}
                   className={`w-full ${top.accent} text-white rounded-2xl px-5 py-4 text-left transition-all active:scale-[0.98] shadow-md`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -163,7 +185,7 @@ function AIPlatformCurator() {
             {results.slice(1).map((r) => (
               <button
                 key={r.platform}
-                onClick={() => handleOpen(r)}
+                onClick={() => openPlatform(r)}
                 className={`w-full flex items-center gap-3 bg-white border-2 ${r.border} rounded-2xl px-4 py-3 hover:shadow-sm transition-all active:scale-[0.98] text-left`}
               >
                 <div className={`w-10 h-10 ${r.light} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
