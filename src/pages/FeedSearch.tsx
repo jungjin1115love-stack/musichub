@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, ExternalLink, Search, X } from "lucide-react";
+import { MapPin, Clock, ExternalLink, Search, X, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { checkServerHealth, fetchMuleJobs, searchFeed, type ScrapedItem } from "@/lib/scrapers/feedClient";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -148,25 +149,65 @@ const CATEGORIES = ["전체", "보컬", "기타", "건반", "드럼", "작곡"];
 
 // ── Component ─────────────────────────────────────────────────
 
+// FeedItem 타입을 ScrapedItem과 로컬 더미 데이터 양쪽에 사용할 수 있도록 통일
+type FeedItemUnified = FeedItem | ScrapedItem;
+
 const FeedSearch = () => {
-  const [query,    setQuery]    = useState("");
-  const [platform, setPlatform] = useState<Platform | "전체">("전체");
-  const [category, setCategory] = useState("전체");
+  const [query,       setQuery]       = useState("");
+  const [platform,    setPlatform]    = useState<Platform | "전체">("전체");
+  const [category,    setCategory]    = useState("전체");
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null); // null=확인중
+  const [liveItems,   setLiveItems]   = useState<ScrapedItem[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [liveError,   setLiveError]   = useState<string | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 서버 상태 확인 (컴포넌트 마운트 시)
+  useEffect(() => {
+    checkServerHealth().then(setServerOnline);
+  }, []);
+
+  // 서버가 온라인이면 뮬 최신 목록 자동 로드
+  useEffect(() => {
+    if (!serverOnline) return;
+    setLoading(true);
+    fetchMuleJobs()
+      .then(setLiveItems)
+      .catch((e) => setLiveError(e.message))
+      .finally(() => setLoading(false));
+  }, [serverOnline]);
+
+  // 검색어 입력 시 300ms 디바운스 후 서버 검색
+  useEffect(() => {
+    if (!serverOnline || !query.trim()) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setLoading(true);
+      searchFeed(query.trim())
+        .then(setLiveItems)
+        .catch((e) => setLiveError(e.message))
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [query, serverOnline]);
+
+  // 표시할 데이터: 서버 온라인이면 실시간 데이터, 아니면 더미 데이터
+  const sourceItems: FeedItemUnified[] = serverOnline ? liveItems : FEED_ITEMS;
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return FEED_ITEMS.filter((item) => {
+    return sourceItems.filter((item) => {
       const matchQuery =
         !q ||
         item.title.toLowerCase().includes(q) ||
         item.region.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
-        item.desc.toLowerCase().includes(q);
+        ("desc" in item ? item.desc : "").toLowerCase().includes(q);
       const matchPlatform = platform === "전체" || item.platform === platform;
       const matchCategory = category === "전체" || item.category === category;
       return matchQuery && matchPlatform && matchCategory;
     });
-  }, [query, platform, category]);
+  }, [query, platform, category, sourceItems]);
 
   return (
     <div className="min-h-screen bg-[#fff9f5]">
@@ -185,6 +226,35 @@ const FeedSearch = () => {
           <h1 className="text-2xl font-extrabold text-gray-800">📋 정보 모아보기</h1>
           <p className="text-sm text-gray-500 mt-0.5">외부 플랫폼의 최신 음악 구인·레슨 정보를 통합해서 보여드려요</p>
         </div>
+
+        {/* 서버 상태 배너 */}
+        {serverOnline === null && (
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-gray-500">
+            <RefreshCw size={14} className="animate-spin" />
+            스크래핑 서버 연결 확인 중...
+          </div>
+        )}
+        {serverOnline === true && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-green-700">
+            <Wifi size={14} />
+            <span><strong>실시간 수집 ON</strong> — 뮬 외부 데이터를 가져오고 있습니다</span>
+            {loading && <RefreshCw size={12} className="animate-spin ml-auto" />}
+          </div>
+        )}
+        {serverOnline === false && (
+          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 text-sm text-amber-700">
+            <div className="flex items-center gap-2">
+              <WifiOff size={14} />
+              <span>스크래핑 서버 미실행 — <strong>샘플 데이터</strong> 표시 중</span>
+            </div>
+            <code className="text-xs bg-amber-100 px-2 py-0.5 rounded font-mono">cd server && npm i && node index.js</code>
+          </div>
+        )}
+        {liveError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4 text-xs text-red-600">
+            ⚠️ {liveError} — CSS 셀렉터를 사이트 실제 DOM에 맞게 수정해야 합니다.
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-orange-100 p-3 mb-3">
