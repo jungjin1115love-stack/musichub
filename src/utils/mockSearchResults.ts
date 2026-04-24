@@ -170,49 +170,49 @@ const POOL: MockResult[] = [
   // ── 워크넷 ──────────────────────────────────────────────────
   {
     id: "worknet-1", platform: "워크넷",
-    title: "[고용24] 음악학원 보컬 강사 채용 — 서울 강북",
+    title: "[고용24] 음악학원 드럼 강사 채용 — 서울 강북",
     summary: "주 5일 풀타임 근무. 4대보험 적용. 경력 1년 이상 우대. 수업 준비 지원금 별도 제공. 이력서 접수 중.",
-    date: "1일 전", url: "https://www.work.go.kr/empInfo/empInfoSrch/list.do?srchKeyword=%EC%9D%8C%EC%95%85+%EA%B0%95%EC%82%AC",
-    instrument: "보컬", region: "서울", salary: "월 230만~260만",
+    date: "1일 전", url: "https://www.work.go.kr/empInfo/empInfoSrch/list.do?srchKeyword=%EB%93%9C%EB%9F%BC+%EA%B0%95%EC%82%AC",
+    instrument: "드럼", region: "서울", salary: "월 230만~260만",
   },
   {
     id: "worknet-2", platform: "워크넷",
-    title: "[고용24] 실용음악 피아노 강사 정규직 채용",
+    title: "[고용24] 드럼 레슨 강사 정규직 채용 (경기)",
     summary: "예술단체 소속. 4대보험·퇴직금 보장. 주 40시간 이내. 관련 전공 학사 학위 소지자. 서류 전형 → 면접.",
-    date: "2일 전", url: "https://www.work.go.kr/empInfo/empInfoSrch/list.do?srchKeyword=%ED%94%BC%EC%95%84%EB%85%B8+%EA%B0%95%EC%82%AC",
-    instrument: "피아노", region: "경기", salary: "월 240만~270만",
+    date: "2일 전", url: "https://www.work.go.kr/empInfo/empInfoSrch/list.do?srchKeyword=%EB%93%9C%EB%9F%BC+%EB%A0%88%EC%8A%A8",
+    instrument: "드럼", region: "경기", salary: "월 240만~270만",
   },
 
   // ── 사람인 ──────────────────────────────────────────────────
   {
     id: "saramin-1", platform: "사람인",
-    title: "음악 학원 기타 강사 채용 (경기 수원)",
-    summary: "수원 인계동 소재. 어린이~성인 레슨. 오후 근무 가능자. 경력 무관, 입사 후 커리큘럼 교육 제공. 면접 후 결정.",
-    date: "3시간 전", url: "https://www.saramin.co.kr/zf_user/search/recruit?searchword=%EC%9D%8C%EC%95%85+%EA%B0%95%EC%82%AC",
-    instrument: "기타", region: "수원", salary: "시급 2.8만~3만",
+    title: "드럼 강사 채용 — 경기 수원 음악학원",
+    summary: "수원 인계동 소재. 어린이~성인 드럼 레슨. 오후 근무 가능자. 경력 무관, 입사 후 커리큘럼 교육 제공. 면접 후 결정.",
+    date: "3시간 전", url: "https://www.saramin.co.kr/zf_user/search/recruit?searchword=%EB%93%9C%EB%9F%BC+%EA%B0%95%EC%82%AC",
+    instrument: "드럼", region: "수원", salary: "시급 2.8만~3만",
   },
   {
     id: "saramin-2", platform: "사람인",
     title: "재즈 드럼 강사 모집 — 대구 실용음악학원",
     summary: "드럼 전 레벨 담당. 재즈·팝 장르 선호. 주 4~5일 근무. 월 정급제. 신입 가능, 성실한 분 환영.",
-    date: "1일 전", url: "https://www.saramin.co.kr/zf_user/search/recruit?searchword=%EB%93%9C%EB%9F%BC+%EA%B0%95%EC%82%AC",
+    date: "1일 전", url: "https://www.saramin.co.kr/zf_user/search/recruit?searchword=%EB%93%9C%EB%9F%BC+%EB%A0%88%EC%8A%A8",
     instrument: "드럼", region: "대구", salary: "월 220만~250만",
   },
 
   // ── 잡코리아 ────────────────────────────────────────────────
   {
     id: "jobkorea-1", platform: "잡코리아",
-    title: "음악교육 기업 미디·작곡 강사 채용 (서울 강남)",
-    summary: "대형 음악 교육 그룹 소속. 커리큘럼 개발 참여. Logic·Ableton·Cubase 중 1개 이상 필수. 계약직 후 정규직 전환.",
-    date: "4시간 전", url: "https://www.jobkorea.co.kr/Search/?stext=%EC%9D%8C%EC%95%85+%EA%B0%95%EC%82%AC",
-    instrument: "작곡·미디", region: "강남", salary: "월 260만~300만",
+    title: "드럼 강사 채용 — 대형 음악교육 그룹 (서울 강남)",
+    summary: "대형 음악 교육 그룹 소속. 드럼 커리큘럼 개발 참여. 전 레벨 지도 가능자 우대. 계약직 후 정규직 전환.",
+    date: "4시간 전", url: "https://www.jobkorea.co.kr/Search/?stext=%EB%93%9C%EB%9F%BC+%EA%B0%95%EC%82%AC",
+    instrument: "드럼", region: "강남", salary: "월 260만~300만",
   },
   {
     id: "jobkorea-2", platform: "잡코리아",
-    title: "보컬 강사 채용 — 전국 체인 음악학원 (부산·대구)",
+    title: "드럼 강사 채용 — 전국 체인 음악학원 (부산·대구)",
     summary: "체인 학원 브랜드. 지역 내 직영점 배치. 경력 2년 이상 우대. 성과급·수업 수당 별도 지급. 복리후생 우수.",
-    date: "2일 전", url: "https://www.jobkorea.co.kr/Search/?stext=%EB%B3%B4%EC%BB%AC+%EA%B0%95%EC%82%AC",
-    instrument: "보컬", region: "부산", salary: "월 240만~280만",
+    date: "2일 전", url: "https://www.jobkorea.co.kr/Search/?stext=%EB%93%9C%EB%9F%BC+%EB%A0%88%EC%8A%A8",
+    instrument: "드럼", region: "부산", salary: "월 240만~280만",
   },
 ];
 
@@ -265,7 +265,8 @@ function getPlatformPriority(purpose: string): SearchPlatform[] {
 // ── 외부 플랫폼 점프 URL (워크넷·사람인·잡코리아) ────────────
 
 export function getExternalJobUrl(platform: "워크넷" | "사람인" | "잡코리아", keyword: string): string {
-  const q = encodeURIComponent(keyword || "음악 강사");
+  // 키워드가 비어 있으면 드럼 강사를 기본 검색어로 사용
+  const q = encodeURIComponent(keyword || "드럼 강사");
   if (platform === "워크넷")  return `https://www.work.go.kr/empInfo/empInfoSrch/list.do?srchKeyword=${q}`;
   if (platform === "사람인")  return `https://www.saramin.co.kr/zf_user/search/recruit?searchword=${q}`;
   return `https://www.jobkorea.co.kr/Search/?stext=${q}`;

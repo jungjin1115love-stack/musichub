@@ -1,0 +1,90 @@
+[
+  {
+    "title": "드럼 전임 강사 급구 (풀타임·즉시 출근)",
+    "place": "비트팩토리 음악학원",
+    "region": "서울 홍대",
+    "category": "드럼",
+    "salary": "월 290만~330만",
+    "description": "드럼 전 레벨(입문~중급) 담당. 즉시 출근 가능자 우대. 방음 연습실·악기 제공.",
+    "urgent": true,
+    "posted_at": "2026-04-17",
+    "source": "자체등록"
+  },
+  {
+    "title": "재즈 드럼 파트타임 강사 모집",
+    "place": "블루노트 아카데미",
+    "region": "서울 강남",
+    "category": "재즈 드럼",
+    "salary": "시급 4만원",
+    "description": "주 2~3회, 오후 2시~8시 가능하신 분. 재즈 그루브·이론 수업 필수. 성인 취미반 특화.",
+    "urgent": false,
+    "posted_at": "2026-04-16",
+    "source": "자체등록"
+  },
+  {
+    "title": "CCM 드럼 강사 급구 — 교회 음악팀",
+    "place": "온누리 뮤직스쿨",
+    "region": "경기 성남",
+    "category": "CCM",
+    "salary": "월 260만~290만",
+    "description": "CCM·찬양 드럼 전공 우대. 경력 무관 지원 가능. 면접 후 근무 조건 협의.",
+    "urgent": true,
+    "posted_at": "2026-04-16",
+    "source": "자체등록"
+  },
+  {
+    "title": "드럼 레슨 강사 — 어린이·성인 전 레벨",
+    "place": "박준혁 드럼 스튜디오",
+    "region": "서울 노원",
+    "category": "드럼",
+    "salary": "회당 5만원",
+    "description": "입문부터 세션 준비까지. 주 1회부터 OK. 개인 방음 연습실 보유. 현직 세션 드러머.",
+    "urgent": false,
+    "posted_at": "2026-04-15",
+    "source": "자체등록"
+  },
+  {
+    "title": "록·메탈 드럼 강사 모집",
+    "place": "메탈헤드 스튜디오",
+    "region": "경기 수원",
+    "category": "록·메탈",
+    "salary": "시급 3.5만~4만",
+    "description": "록·메탈 드럼 전문. 더블 베이스 드럼 지도 가능자 우대. 성인 취미·밴드반 담당.",
+    "urgent": false,
+    "posted_at": "2026-04-15",
+    "source": "자체등록"
+  },
+  {
+    "title": "가요·팝 드럼 강사 모집 (학원 파트타임)",
+    "place": "리듬존 음악학원",
+    "region": "서울 합정",
+    "category": "가요·팝",
+    "salary": "협의",
+    "description": "가요·팝 비트 중심 레슨. 초·중급 어린이반 담당. 주 3회 이상 근무 가능자.",
+    "urgent": false,
+    "posted_at": "2026-04-14",
+    "source": "자체등록"
+  },
+  {
+    "title": "드럼 전임 강사 구합니다 — 대구 학원",
+    "place": "뮤직플러스 학원",
+    "region": "대구 수성구",
+    "category": "드럼",
+    "salary": "월 250만~280만",
+    "description": "어린이 입문반·성인 취미반 드럼 지도. 대구 거주자 우대. 경력 1년 이상.",
+    "urgent": false,
+    "posted_at": "2026-04-13",
+    "source": "자체등록"
+  },
+  {
+    "title": "드럼 레슨 — 초급부터 세션 준비까지",
+    "place": "최동욱 드럼 강사",
+    "region": "서울 잠실",
+    "category": "드럼",
+    "salary": "회당 5만원",
+    "description": "현직 세션 드러머. 실전 그루브 중심 레슨. 개인 방음 연습실 보유. 토·일 가능.",
+    "urgent": false,
+    "posted_at": "2026-04-12",
+    "source": "자체등록"
+  }
+]

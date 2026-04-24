@@ -50,33 +50,38 @@ const INSTRUMENT_BONUS: Partial<Record<string, Partial<Record<Platform, number>>
 
 function muleKeyword(inst: string, loc: string, purpose: string): string {
   // 뮬: 경력/세션/구인 중심 — 지역 포함, 직종 수식어 추가
-  const parts = [inst, loc].filter(Boolean);
+  // 드럼 앱이므로 악기가 비어 있으면 드럼으로 기본 설정
+  const instrument = inst || "드럼";
+  const parts = [instrument, loc].filter(Boolean);
   if      (purpose === "강사 구인") parts.push("강사 모집");
   else if (purpose === "강사 구직") parts.push("구직");
   else if (purpose === "레슨 받기") parts.push("레슨");
-  return parts.join(" ").trim() || "음악 강사";
+  return parts.join(" ").trim() || "드럼 강사";
 }
 
 function daangnKeyword(inst: string, loc: string, purpose: string): string {
   // 당근: 동네 기반 — 지역을 앞에, 캐주얼 수식어 사용
+  const instrument = inst || "드럼";
   const suffix = purpose === "강사 구인" ? "알바" : "레슨";
-  return [inst, suffix, loc].filter(Boolean).join(" ").trim() || "음악 레슨";
+  return [instrument, suffix, loc].filter(Boolean).join(" ").trim() || "드럼 레슨";
 }
 
 function soomgoKeyword(inst: string, purpose: string): string {
   // 숨고: 취미/레슨 소비자 중심 — 악기명만, 지역 무관 (전국 매칭)
+  const instrument = inst || "드럼";
   const type = purpose === "레슨 받기" ? "1:1 레슨"
              : purpose === "강사 구인" ? "강사"
              : "레슨";
-  return [inst, type].filter(Boolean).join(" ").trim() || "음악 레슨";
+  return [instrument, type].filter(Boolean).join(" ").trim() || "드럼 레슨";
 }
 
 function kmongKeyword(inst: string, purpose: string): string {
   // 크몽: 프리랜서/단기 의뢰 중심 — "강습" "원데이" 등 프로젝트성 수식어
+  const instrument = inst || "드럼";
   const suffix = purpose === "레슨 받기" ? "강습"
                : purpose === "강사 구인" ? "레슨 강사"
                : "레슨";
-  return [inst, suffix].filter(Boolean).join(" ").trim() || "음악 레슨";
+  return [instrument, suffix].filter(Boolean).join(" ").trim() || "드럼 레슨";
 }
 
 // ── URL 빌더 ────────────────────────────────────────────────
@@ -86,8 +91,9 @@ function toUrl(base: string, kw: string): string {
 }
 
 // 뮬은 공백을 + 로 처리해야 제목(f=title) 검색이 정상 작동함
+// category=4 는 드럼 카테고리 고정 파라미터
 function toMuleUrl(kw: string): string {
-  return "https://www.mule.co.kr/bbs/info/recruit?f=title&q="
+  return "https://www.mule.co.kr/bbs/info/recruit?category=4&f=title&q="
     + encodeURIComponent(kw).replace(/%20/g, "+");
 }
 

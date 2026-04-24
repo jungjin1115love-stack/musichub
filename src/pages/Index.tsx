@@ -1,261 +1,628 @@
+/**
+ * DrumHub — 초간결 홈 피드 (통합 스트림)
+ * - useFeedStream으로 3개 섹션 병렬 조회
+ * - [NEW] 배지, Pull-to-Refresh, 탭 포커스 자동 갱신
+ * - 카드 클릭 → 각 DrumHub 세부 페이지 연결
+ */
+
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import PlatformGateway from "@/components/PlatformGateway";
-import ProfileCard, { type InstructorProfile } from "@/components/ProfileCard";
-import {
-  Sparkles,
-  Video,
-  Share2,
-  MapPin,
-  Clock,
-  ExternalLink,
-  ChevronRight,
-  Star,
-  Users,
-  ArrowRight,
-} from "lucide-react";
+import { useFeedStream } from "@/hooks/useFeedStream";
+import { useSupabasePosts, type DbPost } from "@/hooks/useSupabasePosts";
+import { useSupabaseInstructors, type InstructorProfile } from "@/hooks/useSupabaseInstructors";
+import { useSupabaseStudios, type Studio } from "@/hooks/useSupabaseStudios";
+import { Search, RefreshCw, MapPin, Clock, Drum, Play } from "lucide-react";
 
-// ── Sample Profile ────────────────────────────────────────────
+// ── 색상 ─────────────────────────────────────────────────────
+const GOLD       = "#D4AF37";
+const GOLD_LIGHT = "#F5E27A";
+const DARK_BG    = "#0d0f1a";
+const CARD_BG    = "#161929";
+const BORDER     = "rgba(212,175,55,0.18)";
 
-const SAMPLE_PROFILE: InstructorProfile = {
-  name: "김민수",
-  major: "피아노 · 재즈",
-  school: "연세대 음악학과",
-  experience: "10년 경력",
-  tagline: "입시부터 취미까지, 당신의 속도에 맞추는 레슨",
-  verifiedSchool: true,
-  verifiedCareer: true,
-  youtubeId: "jNQXAC9IVRw",
-  curriculum: [
-    "재즈 기초 이론 및 코드 보이싱",
-    "즉흥연주(임프로바이제이션) 트레이닝",
-    "팝·클래식 레퍼토리 완성",
-    "음악대학 입시 전문 지도",
-  ],
-  kakaoLink: "https://open.kakao.com/",
-  profileId: "kimminsu",
-  emoji: "🎹",
+// ── [NEW] 배지 ────────────────────────────────────────────────
+function NewBadge() {
+  return (
+    <span
+      className="flex-none text-xs font-extrabold rounded-full px-2 py-0.5 animate-pulse"
+      style={{
+        background: "rgba(255,60,60,0.18)",
+        color: "#ff5c5c",
+        border: "1px solid rgba(255,60,60,0.35)",
+      }}
+    >
+      NEW
+    </span>
+  );
+}
+
+// ── 태그 배지 ─────────────────────────────────────────────────
+type TagType = "학원" | "강사" | "영상";
+const TAG_STYLE: Record<TagType, { bg: string; color: string; border: string }> = {
+  학원: { bg: `${GOLD}22`,              color: GOLD,      border: `1px solid ${GOLD}55` },
+  강사: { bg: "rgba(100,180,255,0.15)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.35)" },
+  영상: { bg: "rgba(255,90,90,0.15)",   color: "#ff6464", border: "1px solid rgba(255,90,90,0.35)" },
 };
 
-// ── Aggregator Data ───────────────────────────────────────────
-
-const TODAY_JOBS = [
-  { id: 1, title: "보컬 강사 급구 (풀타임)", source: "뮬", region: "서울 홍대", salary: "월 300만", isNew: true, time: "37분 전", urgent: true },
-  { id: 2, title: "재즈피아노 파트타임 강사 모집", source: "뮬", region: "서울 강남", salary: "시급 4만", isNew: true, time: "1시간 전", urgent: false },
-  { id: 3, title: "드럼 전임 강사 (경력 2년 이상)", source: "카페", region: "경기 성남", salary: "월 280만", isNew: false, time: "2시간 전", urgent: true },
-  { id: 4, title: "미디/작곡 강사 모집 (협의)", source: "뮬", region: "서울 마포", salary: "협의", isNew: false, time: "3시간 전", urgent: false },
-  { id: 5, title: "기타 강사 파트타임 구합니다", source: "카페", region: "인천 부평", salary: "시급 3.5만", isNew: true, time: "4시간 전", urgent: false },
-];
-
-// ── Sub-Components ────────────────────────────────────────────
-
-function StepBadge({ n, label, icon }: { n: number; label: string; icon: string }) {
+function TagBadge({ label }: { label: TagType }) {
+  const s = TAG_STYLE[label];
   return (
-    <div className="flex flex-col items-center gap-2 flex-1">
-      <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl">
-        {icon}
+    <span
+      className="flex-none text-xs font-extrabold rounded-full px-2.5 py-0.5"
+      style={{ background: s.bg, color: s.color, border: s.border }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ── 드럼 바운스 로딩 ──────────────────────────────────────────
+function DrumDots() {
+  return (
+    <>
+      <div className="flex gap-1">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="w-1.5 h-1.5 rounded-full inline-block"
+            style={{ background: GOLD, animation: `drum-b 0.8s ease-in-out ${i * 0.15}s infinite` }}
+          />
+        ))}
       </div>
-      <span className="w-6 h-6 rounded-full bg-[#ff8a3d] text-white text-xs font-extrabold flex items-center justify-center -mt-1">
-        {n}
-      </span>
-      <p className="text-sm font-semibold text-gray-700 text-center leading-tight">{label}</p>
+      <style>{`@keyframes drum-b{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}`}</style>
+    </>
+  );
+}
+
+// ── 스켈레톤 — 텍스트 카드 ────────────────────────────────────
+function SkeletonTextCard() {
+  return (
+    <div className="rounded-2xl p-4 animate-pulse" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="h-4 flex-1 rounded"            style={{ background: "rgba(255,255,255,0.09)" }} />
+        <div className="h-5 w-10 rounded-full flex-none" style={{ background: "rgba(255,255,255,0.07)" }} />
+      </div>
+      <div className="h-3 w-full rounded mb-1.5" style={{ background: "rgba(255,255,255,0.06)" }} />
+      <div className="h-3 w-4/5 rounded mb-4"   style={{ background: "rgba(255,255,255,0.06)" }} />
+      <div className="h-8 w-24 rounded-full"    style={{ background: "rgba(255,255,255,0.07)" }} />
     </div>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────
+// ── 스켈레톤 — 연습실 카드 ───────────────────────────────────
+function SkeletonStudioCard() {
+  return (
+    <div className="rounded-2xl overflow-hidden animate-pulse" style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}>
+      <div className="h-32" style={{ background: "rgba(255,255,255,0.07)" }} />
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <div className="h-4 w-1/2 rounded" style={{ background: "rgba(255,255,255,0.09)" }} />
+          <div className="h-6 w-20 rounded-full" style={{ background: "rgba(255,255,255,0.09)" }} />
+        </div>
+        <div className="h-3 w-1/3 rounded mb-3" style={{ background: "rgba(255,255,255,0.06)" }} />
+        <div className="h-9 rounded-xl"         style={{ background: "rgba(255,255,255,0.07)" }} />
+      </div>
+    </div>
+  );
+}
 
-const Index = () => {
-  const [splashPhase, setSplashPhase] = useState<"show" | "fadeout" | "done">("show");
-  const [showSample, setShowSample] = useState(false);
+// ── 빈 결과 ──────────────────────────────────────────────────
+function EmptySection() {
+  return (
+    <div
+      className="rounded-2xl py-10 text-center"
+      style={{ border: `2px dashed ${BORDER}`, background: "rgba(212,175,55,0.02)" }}
+    >
+      <p className="text-3xl mb-2">🥁</p>
+      <p className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.3)" }}>
+        API 키가 설정되면 실시간 데이터가 표시됩니다.
+      </p>
+    </div>
+  );
+}
 
+// ── 섹션 라벨 ─────────────────────────────────────────────────
+function SectionLabel({ emoji, title, loading }: { emoji: string; title: string; loading: boolean }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="text-base leading-none">{emoji}</span>
+      <span className="text-xs font-extrabold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
+        {title}
+      </span>
+      {loading && <DrumDots />}
+    </div>
+  );
+}
+
+// ── 구분선 ───────────────────────────────────────────────────
+function Divider() {
+  return <div className="h-px w-full" style={{ background: BORDER }} />;
+}
+
+// ── 더보기 링크 ───────────────────────────────────────────────
+function MoreLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center justify-center mt-3 py-2 text-xs font-bold tracking-wider transition-opacity hover:opacity-60"
+      style={{ color: "rgba(255,255,255,0.2)" }}
+    >
+      {label} →
+    </Link>
+  );
+}
+
+// ── 마지막 새로고침 시간 표시 ─────────────────────────────────
+function useRelativeTime(ts: number) {
+  const [label, setLabel] = useState("방금");
   useEffect(() => {
-    const t1 = setTimeout(() => setSplashPhase("fadeout"), 1500);
-    const t2 = setTimeout(() => setSplashPhase("done"), 2300);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+    const update = () => {
+      const diff = Math.floor((Date.now() - ts) / 1000);
+      if (diff < 60)       setLabel("방금");
+      else if (diff < 3600) setLabel(`${Math.floor(diff / 60)}분 전`);
+      else                  setLabel(`${Math.floor(diff / 3600)}시간 전`);
+    };
+    update();
+    const t = setInterval(update, 30_000);
+    return () => clearInterval(t);
+  }, [ts]);
+  return label;
+}
+
+// ── 공고 카드 ─────────────────────────────────────────────────
+function JobCard({ item, searchQ }: { item: FeedItem; searchQ: string }) {
+  const academyLink = searchQ
+    ? `/academies?q=${encodeURIComponent(searchQ)}`
+    : `/academies?q=${encodeURIComponent(item.title.split(" ").slice(0, 4).join(" "))}`;
 
   return (
-    <div className="min-h-screen bg-[#fff9f5]">
+    <div
+      className="rounded-2xl p-4 transition-all hover:border-[rgba(212,175,55,0.35)]"
+      style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}
+    >
+      {/* 제목 행 */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="font-extrabold text-white text-sm leading-snug line-clamp-2 flex-1">
+          {item.title}
+        </p>
+        <div className="flex items-center gap-1.5 flex-none">
+          {item.isNew && <NewBadge />}
+          <TagBadge label="학원" />
+        </div>
+      </div>
 
-      {/* ── Splash ── */}
-      {splashPhase !== "done" && (
-        <div
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#ff8a3d] transition-opacity duration-700 ${
-            splashPhase === "fadeout" ? "opacity-0" : "opacity-100"
-          }`}
+      <p className="text-xs leading-relaxed line-clamp-2 mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
+        {item.snippet}
+      </p>
+
+      {/* 버튼 행 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-4 py-2 transition-opacity hover:opacity-75"
+          style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}50` }}
         >
-          <div className="text-center">
-            <div className="text-7xl mb-4">🎵</div>
-            <h1 className="text-5xl font-extrabold text-white tracking-tight">MusicHub</h1>
-            <p className="text-white/80 text-xl mt-3 font-medium">강사의 무기를 만드는 곳</p>
+          <ExternalLink size={11} /> 상세 보기
+        </a>
+        <Link
+          to={academyLink}
+          className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-4 py-2 transition-opacity hover:opacity-75"
+          style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: `1px solid ${BORDER}` }}
+        >
+          🏫 학원 더보기
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── 강사 카드 ─────────────────────────────────────────────────
+function InstructorCard({ item }: { item: FeedItem }) {
+  return (
+    <div
+      className="rounded-2xl p-4 transition-all hover:border-[rgba(100,180,255,0.35)]"
+      style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="font-extrabold text-white text-sm leading-snug line-clamp-2 flex-1">
+          {item.title}
+        </p>
+        <div className="flex items-center gap-1.5 flex-none">
+          {item.isNew && <NewBadge />}
+          <TagBadge label="강사" />
+        </div>
+      </div>
+
+      <p className="text-xs leading-relaxed line-clamp-2 mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>
+        {item.snippet}
+      </p>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-4 py-2 transition-opacity hover:opacity-75"
+          style={{ background: "rgba(100,180,255,0.12)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.3)" }}
+        >
+          <ExternalLink size={11} /> 프로필 보기
+        </a>
+        <Link
+          to="/instructors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-4 py-2 transition-opacity hover:opacity-75"
+          style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: `1px solid ${BORDER}` }}
+        >
+          🥁 강사 더보기
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── 홈 연습실 카드 (Supabase) ────────────────────────────────
+function DbStudioCard({ studio }: { studio: Studio }) {
+  const hasPhoto = !!studio.photoUrl;
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <Link to={`/studios/${studio.id}`} className="block">
+      <div
+        className="rounded-2xl overflow-hidden transition-all hover:border-[rgba(212,175,55,0.38)] cursor-pointer"
+        style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}
+      >
+        {/* 사진 + 가격 오버레이 */}
+        <div className="relative h-28 overflow-hidden"
+          style={{ background: `${GOLD}0a` }}>
+          {hasPhoto && !imgErr ? (
+            <img src={studio.photoUrl} alt={studio.name}
+              className="w-full h-full object-cover"
+              onError={() => setImgErr(true)} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${GOLD}10, ${GOLD}04)` }}>
+              <span className="text-3xl opacity-25">🥁</span>
+            </div>
+          )}
+          <div className="absolute top-2 right-2">
+            <span className="font-extrabold text-xs rounded-full px-2.5 py-1 text-black shadow-md"
+              style={{ background: `linear-gradient(135deg, ${GOLD}, ${GOLD_LIGHT})` }}>
+              {studio.price}
+            </span>
           </div>
+        </div>
+
+        {/* 정보 */}
+        <div className="p-3">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className="font-extrabold text-white text-sm leading-snug line-clamp-1 flex-1">
+              {studio.name}
+            </p>
+            <span className="flex-none text-xs font-extrabold rounded-full px-2.5 py-0.5"
+              style={{ background: "rgba(100,220,180,0.15)", color: "#64dcb4", border: "1px solid rgba(100,220,180,0.35)" }}>
+              연습실
+            </span>
+          </div>
+          <p className="text-xs flex items-center gap-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <MapPin size={10} style={{ color: GOLD }} /> {studio.location}
+          </p>
+          {studio.equipment && (
+            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+              <Drum size={10} /> {studio.equipment}
+            </p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── 급구 배지 ─────────────────────────────────────────────────
+function UrgentBadge() {
+  return (
+    <span
+      className="text-xs font-extrabold rounded-full px-2 py-0.5"
+      style={{
+        background: "rgba(239,68,68,0.15)",
+        color: "#f87171",
+        border: "1px solid rgba(239,68,68,0.3)",
+      }}
+    >
+      급구
+    </span>
+  );
+}
+
+// ── DB 공고 카드 (다크 럭셔리) ────────────────────────────────
+function DbJobCard({ post }: { post: DbPost }) {
+  return (
+    <Link to={`/posts/${post.id}`} className="block">
+      <div
+        className="rounded-2xl p-4 transition-all hover:border-[rgba(212,175,55,0.45)] cursor-pointer"
+        style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}
+      >
+        {/* 배지 행 */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {post.urgent && <UrgentBadge />}
+            <span
+              className="text-xs font-extrabold rounded-full px-2.5 py-0.5"
+              style={{ background: `${GOLD}22`, color: GOLD, border: `1px solid ${GOLD}55` }}
+            >
+              {post.category}
+            </span>
+          </div>
+          <TagBadge label="학원" />
+        </div>
+
+        {/* 제목 */}
+        <p className="font-extrabold text-white text-sm leading-snug line-clamp-2 mb-1">
+          {post.title}
+        </p>
+
+        {/* 장소 */}
+        <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>
+          {post.place}
+        </p>
+
+        {/* 설명 */}
+        <p
+          className="text-xs leading-relaxed line-clamp-2 mb-3"
+          style={{ color: "rgba(255,255,255,0.45)" }}
+        >
+          {post.description}
+        </p>
+
+        {/* 하단: 지역·날짜 / 급여 */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span
+              className="text-xs flex items-center gap-1"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+            >
+              <MapPin size={10} /> {post.region}
+            </span>
+            <span
+              className="text-xs flex items-center gap-1"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+            >
+              <Clock size={10} /> {post.postedAt}
+            </span>
+          </div>
+          <span className="text-xs font-extrabold" style={{ color: GOLD }}>
+            {post.salary}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── 홈 강사 카드 (Supabase) ───────────────────────────────────
+function DbInstructorCard({ profile }: { profile: InstructorProfile }) {
+  const hasPhoto = !!profile.photoUrl;
+  const hasVideo = !!profile.youtubeUrl;
+
+  return (
+    <Link to={`/teachers/${profile.id}`} className="block">
+      <div
+        className="rounded-2xl p-4 transition-all hover:border-[rgba(100,180,255,0.45)] cursor-pointer"
+        style={{ background: CARD_BG, border: `1px solid ${BORDER}` }}
+      >
+        <div className="flex items-start gap-3">
+          {/* 프로필 사진 */}
+          <div
+            className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center text-xl"
+            style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}28` }}
+          >
+            {hasPhoto ? (
+              <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              "🥁"
+            )}
+          </div>
+
+          {/* 정보 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="font-extrabold text-white text-sm leading-snug">{profile.name}</p>
+              <div className="flex gap-1 flex-none">
+                {hasVideo && (
+                  <span
+                    className="text-xs font-bold rounded-full px-2 py-0.5"
+                    style={{
+                      background: "rgba(255,80,80,0.15)",
+                      color: "#ff6464",
+                      border: "1px solid rgba(255,80,80,0.3)",
+                    }}
+                  >
+                    영상
+                  </span>
+                )}
+                <TagBadge label="강사" />
+              </div>
+            </div>
+
+            <span
+              className="inline-block text-xs font-extrabold rounded-full px-2 py-0.5 mb-1 text-black"
+              style={{ background: `linear-gradient(135deg, ${GOLD}, ${GOLD_LIGHT})` }}
+            >
+              {profile.genre}
+            </span>
+
+            <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              {profile.bio}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.25)" }}>
+              📍 {profile.location}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── 메인 ─────────────────────────────────────────────────────
+const Index = () => {
+  const [search,    setSearch]    = useState("");
+  const [debounced, setDebounced] = useState("");
+
+  // 400ms 디바운스
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search.trim()), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const {
+    loading,
+    refresh,
+    lastRefreshed,
+    pullProgress,
+  } = useFeedStream(debounced);
+
+  // Supabase 실데이터 (최신 드럼 공고 섹션)
+  const { posts: dbPosts, loading: dbLoading, reload: reloadDb } = useSupabasePosts(5);
+
+  // Supabase 강사 프로필 (활동 중인 선생님 섹션)
+  const { profiles: instProfiles, loading: instProfileLoading, reload: reloadInst } = useSupabaseInstructors(5);
+
+  // Supabase 연습실 (내 근처 연습실 섹션)
+  const { studios, loading: studioLoading, reload: reloadStudios } = useSupabaseStudios(5);
+
+  const anyLoading = dbLoading || instProfileLoading || studioLoading;
+
+  // 전체 새로고침 (pull-to-refresh 포함)
+  const handleRefresh = () => { refresh(); reloadDb(); reloadInst(); reloadStudios(); };
+
+  const timeAgo = useRelativeTime(lastRefreshed);
+
+  return (
+    <div className="min-h-screen" style={{ background: DARK_BG }}>
+      <Navbar />
+
+      {/* ── Pull-to-Refresh 인디케이터 ───────────────────────── */}
+      {pullProgress > 0 && (
+        <div
+          className="flex items-center justify-center gap-2 overflow-hidden transition-all"
+          style={{
+            height: `${Math.round((pullProgress / 100) * 44)}px`,
+            background: `${GOLD}10`,
+          }}
+        >
+          <RefreshCw
+            size={14}
+            className="transition-transform"
+            style={{
+              color: GOLD,
+              transform: `rotate(${Math.round(pullProgress * 3.6)}deg)`,
+              opacity: pullProgress / 100,
+            }}
+          />
+          {pullProgress >= 100 && (
+            <span className="text-xs font-bold" style={{ color: GOLD }}>
+              놓으면 새로고침
+            </span>
+          )}
         </div>
       )}
 
-      {/* ── Main ── */}
-      <div className={`transition-opacity duration-700 ${splashPhase === "done" ? "opacity-100" : "opacity-0"}`}>
+      {/* ── 통합 검색바 — sticky ─────────────────────────────── */}
+      <div
+        className="sticky top-24 z-30 max-w-2xl mx-auto px-4 pt-4 pb-3"
+        style={{ background: `${DARK_BG}f0`, backdropFilter: "blur(14px)" }}
+      >
+        <div className="relative">
+          <Search
+            size={16}
+            className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: search ? GOLD : "rgba(212,175,55,0.4)" }}
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="드럼 공고, 강사, 레슨 검색…"
+            className="w-full rounded-2xl pl-11 pr-4 py-3 text-sm font-medium bg-transparent text-white placeholder:text-gray-600 focus:outline-none transition-all"
+            style={{
+              background: CARD_BG,
+              border: `1.5px solid ${search ? GOLD + "80" : BORDER}`,
+              boxShadow: search ? `0 0 0 3px ${GOLD}12` : "none",
+            }}
+          />
+        </div>
 
-        <Navbar />
+        {/* 마지막 갱신 시간 + 수동 새로고침 */}
+        <div className="flex items-center justify-between mt-2 px-1">
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+            {anyLoading ? "업데이트 중…" : `${timeAgo} 업데이트`}
+          </span>
+          <button
+            onClick={handleRefresh}
+            disabled={anyLoading}
+            className="flex items-center gap-1 text-xs font-bold transition-opacity hover:opacity-70 disabled:opacity-30"
+            style={{ color: GOLD }}
+          >
+            <RefreshCw size={11} className={anyLoading ? "animate-spin" : ""} />
+            새로고침
+          </button>
+        </div>
+      </div>
 
-        {/* ── Hero ── */}
-        <section className="bg-gradient-to-b from-[#ff8a3d] to-[#ffb347] px-4 pt-10 pb-14">
-          <div className="max-w-2xl mx-auto text-center">
-            <Badge className="bg-white/20 text-white border-white/30 text-sm px-3 py-1 mb-4 rounded-full">
-              <Sparkles size={13} className="mr-1" /> 강사 전용 무료 서비스
-            </Badge>
-            <h1 className="text-3xl font-extrabold text-white leading-tight mb-3">
-              내 연주 영상 하나로<br />
-              <span className="text-yellow-200">1분 만에 끝내는</span><br />
-              레슨 프로필 생성
-            </h1>
-            <p className="text-white/80 text-base mb-6 leading-relaxed">
-              뮬, 인스타, 카카오에 바로 공유할 수 있는<br />
-              나만의 강사 프로필 카드를 지금 무료로 만들어보세요.
-            </p>
-            <Button
-              className="bg-white text-[#ff8a3d] hover:bg-yellow-50 font-extrabold rounded-2xl px-8 h-14 text-lg shadow-lg gap-2 mb-4"
-              onClick={() => setShowSample(true)}
-            >
-              무료로 만들기 <ArrowRight size={20} />
-            </Button>
-            <div className="flex items-center justify-center gap-4 text-white/70 text-sm">
-              <span className="flex items-center gap-1"><Users size={14} /> 강사 2,400명 사용 중</span>
-              <span className="flex items-center gap-1"><Star size={14} /> 평점 4.9</span>
-            </div>
+      {/* ── 피드 ─────────────────────────────────────────────── */}
+      <div className="max-w-2xl mx-auto px-4 pt-2 pb-14 space-y-8">
+
+        {/* 섹션 1: 최신 드럼 공고 — Supabase 실데이터 */}
+        <section>
+          <SectionLabel emoji="🏫" title="최신 드럼 공고" loading={dbLoading} />
+          <div className="space-y-3">
+            {dbLoading
+              ? [0, 1, 2].map((i) => <SkeletonTextCard key={i} />)
+              : dbPosts.length > 0
+                ? dbPosts.map((post) => <DbJobCard key={post.id} post={post} />)
+                : <EmptySection />
+            }
           </div>
+          <MoreLink to="/feed" label="전체 공고 보기" />
         </section>
 
-        {/* ── Platform Gateway ── */}
-        <section className="max-w-2xl mx-auto px-4 -mt-4 mb-6">
-          <PlatformGateway />
-        </section>
+        <Divider />
 
-        {/* ── How It Works ── */}
-        <section className="max-w-2xl mx-auto px-4 mb-6">
-          <div className="bg-white rounded-3xl shadow-md p-6">
-            <h2 className="text-center font-extrabold text-gray-800 text-lg mb-5">이렇게 만들어요 👇</h2>
-            <div className="flex items-start gap-2">
-              <StepBadge n={1} icon="🎬" label={"유튜브 링크\n붙여넣기"} />
-              <div className="flex-shrink-0 mt-7 text-gray-300">
-                <ChevronRight size={20} />
-              </div>
-              <StepBadge n={2} icon="✍️" label={"커리큘럼 & \n연락처 입력"} />
-              <div className="flex-shrink-0 mt-7 text-gray-300">
-                <ChevronRight size={20} />
-              </div>
-              <StepBadge n={3} icon="🚀" label={"뮬/인스타에\n바로 공유"} />
-            </div>
+        {/* 섹션 2: 활동 중인 선생님 — Supabase 등록 프로필 */}
+        <section>
+          <SectionLabel emoji="🥁" title="활동 중인 선생님" loading={instProfileLoading} />
+          <div className="space-y-3">
+            {instProfileLoading
+              ? [0, 1, 2].map((i) => <SkeletonTextCard key={i} />)
+              : instProfiles.length > 0
+                ? instProfiles.map((p) => <DbInstructorCard key={p.id} profile={p} />)
+                : <EmptySection />
+            }
           </div>
+          <MoreLink to="/instructors" label="강사 프로필 더보기" />
         </section>
 
-        {/* ── Profile Card Sample ── */}
-        <section className="max-w-2xl mx-auto px-4 mb-6">
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-extrabold text-gray-800 text-lg">📱 샘플 프로필 카드</h2>
-              <Badge className="bg-orange-100 text-[#ff8a3d] border-0 text-xs">미리보기</Badge>
-            </div>
-            <p className="text-gray-500 text-sm mb-5">
-              이런 카드가 만들어집니다. 뮬, 인스타 링크 하나로 공유하세요.
-            </p>
-            <div className="flex justify-center">
-              <ProfileCard profile={SAMPLE_PROFILE} />
-            </div>
+        <Divider />
+
+        {/* 섹션 3: 내 근처 연습실 — Supabase */}
+        <section>
+          <SectionLabel emoji="🎸" title="내 근처 연습실" loading={studioLoading} />
+          <div className="space-y-3">
+            {studioLoading
+              ? [0, 1].map((i) => <SkeletonStudioCard key={i} />)
+              : studios.length > 0
+                ? studios.map((s) => <DbStudioCard key={s.id} studio={s} />)
+                : <EmptySection />
+            }
           </div>
-        </section>
-
-        {/* ── Trust Badges Info ── */}
-        <section className="max-w-2xl mx-auto px-4 mb-6">
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <h2 className="font-extrabold text-gray-800 text-lg mb-4">🏅 신뢰 마크 시스템</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 rounded-2xl p-4 flex flex-col gap-2">
-                <div className="text-2xl">🎓</div>
-                <p className="font-bold text-gray-800 text-sm">학력 인증</p>
-                <p className="text-xs text-gray-500 leading-relaxed">졸업증명서 제출 시 프로필에 인증 배지 표시</p>
-              </div>
-              <div className="bg-green-50 rounded-2xl p-4 flex flex-col gap-2">
-                <div className="text-2xl">💼</div>
-                <p className="font-bold text-gray-800 text-sm">경력 확인</p>
-                <p className="text-xs text-gray-500 leading-relaxed">재직증명서·추천서 제출 시 경력 확인 배지 표시</p>
-              </div>
-              <div className="bg-yellow-50 rounded-2xl p-4 flex flex-col gap-2">
-                <div className="text-2xl">▶️</div>
-                <p className="font-bold text-gray-800 text-sm">연주 영상</p>
-                <p className="text-xs text-gray-500 leading-relaxed">유튜브 링크 연결 시 카드에서 바로 재생 가능</p>
-              </div>
-              <div className="bg-pink-50 rounded-2xl p-4 flex flex-col gap-2">
-                <div className="text-2xl">💬</div>
-                <p className="font-bold text-gray-800 text-sm">카톡 연결</p>
-                <p className="text-xs text-gray-500 leading-relaxed">오픈채팅 링크 등록으로 즉시 문의 가능</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Today's Job Aggregator ── */}
-        <section className="max-w-2xl mx-auto px-4 mb-10">
-          <div className="bg-white rounded-3xl shadow-md p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-extrabold text-gray-800 text-lg">
-                📋 오늘의 신규 구인 소식
-              </h2>
-              <button className="flex items-center gap-1 text-sm text-[#ff8a3d] font-semibold">
-                더보기 <ChevronRight size={15} />
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">
-              <ExternalLink size={11} /> 뮬, 음악 카페 등 외부 채용 공고 모음
-            </p>
-            <div className="space-y-3">
-              {TODAY_JOBS.map((job) => (
-                <Card key={job.id} className="rounded-2xl border border-orange-100 shadow-none bg-orange-50">
-                  <CardContent className="p-4 flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        {job.urgent && (
-                          <Badge className="bg-red-500 text-white text-xs px-2 py-0 rounded-full">급구</Badge>
-                        )}
-                        {job.isNew && (
-                          <Badge className="bg-[#ff8a3d] text-white text-xs px-2 py-0 rounded-full">NEW</Badge>
-                        )}
-                        <Badge variant="outline" className="text-xs px-2 py-0 rounded-full border-orange-200 text-orange-400">
-                          {job.source}
-                        </Badge>
-                      </div>
-                      <p className="font-bold text-sm text-gray-800 truncate">{job.title}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <MapPin size={11} /> {job.region}
-                        </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Clock size={11} /> {job.time}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[#ff8a3d] font-bold text-sm whitespace-nowrap">{job.salary}</span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Bottom CTA ── */}
-        <section className="bg-[#ff8a3d] py-10 px-4 text-center">
-          <p className="text-white text-xl font-extrabold mb-2">지금 바로 시작해보세요 🎵</p>
-          <p className="text-white/75 text-sm mb-5">가입 없이 1분 만에 프로필 카드 완성</p>
-          <Button className="bg-white text-[#ff8a3d] hover:bg-yellow-50 font-extrabold rounded-2xl px-8 h-12 text-base shadow-md gap-2">
-            무료로 프로필 만들기 <ArrowRight size={18} />
-          </Button>
+          <MoreLink to="/studios" label="연습실 더보기" />
         </section>
 
       </div>
+
       <Footer />
     </div>
   );

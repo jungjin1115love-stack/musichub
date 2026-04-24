@@ -6,7 +6,8 @@ import { ExternalLink, Sparkles, Copy, Check, Bookmark, X, Loader2 } from "lucid
 
 // ── 옵션 ─────────────────────────────────────────────────────
 
-const INSTRUMENTS = ["전체", "보컬", "피아노", "기타", "드럼", "작곡·미디", "베이스", "바이올린", "색소폰"];
+// 드럼 세부 전공 (기본값: "드럼 전체")
+const DRUM_GENRES = ["드럼 전체", "재즈 드럼", "가요·팝", "CCM", "록·메탈", "라틴·월드"];
 const REGIONS     = ["전체", "홍대", "강남", "성수", "합정", "건대", "잠실", "노원", "분당", "수원", "부산", "대구"];
 const PURPOSES    = ["전체", "레슨 받기", "강사 구인", "강사 구직"];
 
@@ -24,7 +25,7 @@ const PLATFORMS = [
     border: "border-blue-200",
     getUrl: (instrument: string, region: string) => {
       const query = encodeURIComponent(`${instrument} ${region}`.trim()).replace(/%20/g, "+");
-      return `https://www.mule.co.kr/bbs/info/recruit?f=title&q=${query}`;
+      return `https://www.mule.co.kr/bbs/info/recruit?category=4&f=title&q=${query}`;
     },
   },
   {
@@ -100,7 +101,9 @@ function deleteCondition(label: string) {
 
 function buildKeyword(instrument: string, region: string, purpose: string): string {
   const parts: string[] = [];
-  if (instrument !== "전체") parts.push(instrument);
+  // "드럼 전체"는 "드럼"으로 축약해서 키워드에 포함
+  const inst = instrument === "드럼 전체" ? "드럼" : instrument;
+  parts.push(inst);
   if (region !== "전체")     parts.push(region);
   if (purpose === "레슨 받기")  parts.push("레슨");
   else if (purpose === "강사 구인") parts.push("강사 모집");
@@ -111,13 +114,13 @@ function buildKeyword(instrument: string, region: string, purpose: string): stri
 function buildLabel(instrument: string, region: string, purpose: string): string {
   return [instrument, region, purpose]
     .filter((v) => v !== "전체")
-    .join(" · ") || "전체";
+    .join(" · ") || "드럼 전체";
 }
 
 // ── Component ─────────────────────────────────────────────────
 
 const PlatformGateway = () => {
-  const [instrument, setInstrument] = useState("전체");
+  const [instrument, setInstrument] = useState("드럼 전체");
   const [region,     setRegion]     = useState("전체");
   const [purpose,    setPurpose]    = useState("전체");
   const [saved,      setSaved]      = useState<SavedCondition[]>([]);
@@ -128,7 +131,8 @@ const PlatformGateway = () => {
 
   useEffect(() => { setSaved(loadSaved()); }, []);
 
-  const hasFilter = instrument !== "전체" || region !== "전체" || purpose !== "전체";
+  // 드럼 앱이므로 플랫폼 카드는 항상 표시 (드럼 전체가 기본 선택 상태)
+  const hasFilter = true;
   const keyword   = buildKeyword(instrument, region, purpose);
   const label     = buildLabel(instrument, region, purpose);
 
@@ -169,7 +173,7 @@ const PlatformGateway = () => {
     getUrl: (i: string, r: string) => string,
   ) => {
     e.preventDefault();
-    const url = getUrl(inst || "음악 강사", reg || "");
+    const url = getUrl(inst || "드럼 강사", reg || "");
     window.open(url, "_blank");   // 동기 호출 — 팝업 차단 우회
     setToast(`${platformName}에서 '${[inst, reg].filter(Boolean).join(" ")}' 검색 결과를 불러오는 중...`);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -185,7 +189,7 @@ const PlatformGateway = () => {
       {/* ── 포트폴리오 CTA ── */}
       <div className="bg-gradient-to-r from-[#ff8a3d] to-[#ffb347] px-5 py-4">
         <p className="text-white font-extrabold text-base leading-snug mb-0.5">
-          🎯 외부에서 찾기 전에, MusicHub 프로필 카드부터 만드세요!
+          🥁 외부에서 찾기 전에, DrumHub 드럼 강사 프로필 카드부터 만드세요!
         </p>
         <p className="text-white/80 text-xs mb-3">
           지원할 때 링크 하나면 끝납니다 — 연주 영상 + 커리큘럼 + 카톡 연결까지
@@ -227,11 +231,10 @@ const PlatformGateway = () => {
 
       {/* ── 필터 ── */}
       <div className="px-5 pt-4 pb-3">
-        <p className="text-xs font-bold text-gray-500 mb-2">조건 선택 후 플랫폼으로 바로 이동</p>
+        <p className="text-xs font-bold text-gray-500 mb-2">🥁 드럼 장르·지역·목적 선택 후 플랫폼으로 바로 이동</p>
         <div className="flex gap-2 mb-2">
           <select value={instrument} onChange={(e) => setInstrument(e.target.value)} className={selectClass}>
-            <option value="전체">🎵 악기</option>
-            {INSTRUMENTS.slice(1).map((i) => <option key={i}>{i}</option>)}
+            {DRUM_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
           <select value={region} onChange={(e) => setRegion(e.target.value)} className={selectClass}>
             <option value="전체">📍 지역</option>

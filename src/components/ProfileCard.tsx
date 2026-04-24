@@ -49,13 +49,7 @@ ${profile.curriculum.map((c) => `• ${c}`).join("\n")}
     try {
       await navigator.clipboard.writeText(muleText);
     } catch {
-      // fallback for older browsers
-      const ta = document.createElement("textarea");
-      ta.value = muleText;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      // clipboard API 미지원 환경에서는 조용히 무시
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -137,7 +131,7 @@ ${profile.curriculum.map((c) => `• ${c}`).join("\n")}
             onClick={handleCopy}
           >
             {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-            {copied ? "클립보드에 복사 완료! ✅" : "뮬 게시판 양식으로 복사"}
+            {copied ? "클립보드에 복사 완료! ✅" : "DrumHub 프로필 양식 복사"}
           </Button>
         </div>
       </div>
